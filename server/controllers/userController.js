@@ -5,24 +5,24 @@ import jwt from 'jsonwebtoken';
 // Register a new user (default role: pending)
 export const registerUser = async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullName, email, photoURL } = req.body;
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: 'Email already exists' });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
+    if (existingUser) return res.status(200).json(existingUser);
 
     const newUser = new User({
       fullName,
       email,
-      password: hashedPassword
+      photo: photoURL,
+      role: "employee",
+      status: "pending",
+      joinDate: new Date(),
     });
 
     await newUser.save();
-
-    res.status(201).json({ message: 'User registered, waiting for admin approval' });
+    res.status(201).json({ message: "User registered successfully", user: newUser });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
