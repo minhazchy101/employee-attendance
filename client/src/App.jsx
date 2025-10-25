@@ -4,7 +4,8 @@ import Footer from './components/Footer'
 import { Route, Routes} from 'react-router-dom'
 import Home from './pages/Home/Home'
 import { useAppContext } from './context/AppContext'
-import Login from './components/Login'
+
+import AuthModal from './components/AuthModal'
 
 const App = () => {
    const {showLogin} = useAppContext()
@@ -14,7 +15,7 @@ const App = () => {
   return (
     <>
     <Navbar/>
-    {showLogin && <Login/>}
+    {showLogin && <AuthModal/>}
     <Routes>
      <Route path='/' element={<Home/>}/>
      
