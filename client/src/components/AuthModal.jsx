@@ -13,12 +13,12 @@ const LOGIN = "login";
 const SIGNUP = "signup";
 
 const AuthModal = () => {
-  const { setShowLogin } = useAppContext();
+  const { setShowLogin, profile, navigate } = useAppContext();
   const [mode, setMode] = useState(LOGIN);
   const [fade, setFade] = useState(true);
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
-
+  console.log('profile : ' , profile)
   const {
     register,
     handleSubmit,
@@ -77,6 +77,7 @@ const AuthModal = () => {
 
         await updateProfile(result.user, {
           displayName: data.fullName,
+          photoURL : profile?.image
         });
 
         // 2️⃣ Send data to backend (with image file)
@@ -88,11 +89,13 @@ const AuthModal = () => {
 
         alert("Account created successfully!");
         setShowLogin(false);
+        navigate("/dashboard");
       } else {
         // LOGIN
         await signInWithEmailAndPassword(auth, data.email, data.password);
         alert("Logged in successfully!");
         setShowLogin(false);
+        navigate("/dashboard");
       }
     } catch (error) {
       console.error("Auth error:", error);

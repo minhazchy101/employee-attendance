@@ -2,28 +2,20 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import axios from "axios";
 import { auth } from "../firebase/firebase.config";
+import { useNavigate } from "react-router-dom";
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
+   const navigate = useNavigate();
   const [showLogin, setShowLogin] = useState(false);
   const [user, setUser] = useState(null);       // minimal Firebase info
   const [profile, setProfile] = useState(null); // full backend profile
   const [token, setToken] = useState(null);     // backend JWT
   const [loading, setLoading] = useState(true);
-
-  // Fetch detailed user profile from backend
-  const fetchUserProfile = async (email) => {
-    try {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/users/profile/${email}`
-      );
-      setProfile(data);
-    } catch (error) {
-      console.error("Failed to fetch user profile:", error);
-      setProfile(null);
-    }
-  };
+ 
+  console.log('user--> ', user)
+  
 
   useEffect(() => {
     const savedToken = localStorage.getItem("access-token");
@@ -33,12 +25,10 @@ export const AppProvider = ({ children }) => {
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      console.log(currentUser)
       if (currentUser) {
-        setUser({
-          email: currentUser.email,
-          name: currentUser.displayName || null,
-          photo: currentUser.photoURL || null,
-        });
+        setUser(currentUser);
+
 
         try {
           // Request backend JWT
@@ -49,9 +39,12 @@ export const AppProvider = ({ children }) => {
           localStorage.setItem("access-token", data.token);
           axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
           setToken(data.token);
-
+          if (!currentUser) {
+            return   setLoading(true);
+          }
+          console.log('currentUser : ', currentUser)
           // Fetch backend profile
-          fetchUserProfile(currentUser.email);
+          fetchUserProfile(currentUser.email || '');
         } catch (err) {
           console.error("JWT fetch failed:", err);
           setProfile(null);
@@ -72,6 +65,20 @@ export const AppProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
+  // Fetch detailed user profile from backend
+  const fetchUserProfile = async (email) => {
+    try {
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/users/profile/${email}`
+      );
+      setProfile(data);
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+      setProfile(null);
+    }
+  };
+
+
   const logout = async () => {
     await signOut(auth);
     setUser(null);
@@ -82,6 +89,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const value = {
+    navigate,
     showLogin,
     setShowLogin,
     user,
