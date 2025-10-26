@@ -31,18 +31,37 @@ export const registerUser = async (req, res) => {
     // ✅ Use ImageKit's uploaded file URL directly
     const imageUrl = uploadResponse.url;
 
-    // Create and save user
-    const newUser = new User({
-      fullName,
-      email,
-      image: imageUrl,
-      jobTitle,
-      phoneNumber,
-      niNumber,
-      role: "employee",
-      status: "pending",
-      joinDate: new Date(),
-    });
+    // // Create and save user
+    // const newUser = new User({
+    //   fullName,
+    //   email,
+    //   image: imageUrl,
+    //   jobTitle,
+    //   phoneNumber,
+    //   niNumber,
+    //   role: "pending request",
+    //   status: "pending",
+    //   joinDate: new Date(),
+    // });
+
+  // Check if this is the first registered user
+const userCount = await User.countDocuments();
+
+// Make first user admin automatically
+const assignedRole = userCount === 0 ? "admin" : "pending request";
+
+const newUser = new User({
+  fullName,
+  email,
+  image: imageUrl,
+  jobTitle,
+  phoneNumber,
+  niNumber,
+  role: assignedRole,
+  status: "pending",
+  joinDate: new Date(),
+});
+
 
     await newUser.save();
 

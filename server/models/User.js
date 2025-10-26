@@ -7,12 +7,12 @@ const UserSchema = new mongoose.Schema(
     image: { type: String, default: "" },
     email: { type: String, unique: true, required: true, lowercase: true },
     phoneNumber: { type: String, required: true },
-    niNumber: { type: String, required: true },
+    niNumber: { type: String, required: true }, 
 
     role: {
       type: String,
-      enum: ["pending", "employee", "admin"],
-      default: "pending",
+      enum: ["pending request", "employee", "admin"],
+      default: "pending request",
     },
     jobTitle: { type: String, required: true },
     status: { type: String, default: "pending" },

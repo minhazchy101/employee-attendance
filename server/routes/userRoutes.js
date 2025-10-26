@@ -17,7 +17,7 @@ UsersRoute.post("/register", upload.single("image"), registerUser);
 
 // Protected routes
 UsersRoute.get("/all", verifyAdmin, getAllUsers);
-UsersRoute.get("/profile/:email", getUserByEmail); // Profile route can be public if authenticated via token
+UsersRoute.get("/profile/:email", getUserByEmail);
 UsersRoute.put("/update-role/:userId", verifyAdmin, updateUserRole);
 
 export default UsersRoute;

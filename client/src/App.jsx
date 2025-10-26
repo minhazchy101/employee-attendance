@@ -1,31 +1,42 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import Home from "./pages/Home/Home";
-import DashboardLayout from "./pages/Dashboard/DashboardLayout";
-
+import DashboardLayout from "./components/dashboardComponents/DashboardLayout";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AuthModal from "./components/AuthModal";
 import { useAppContext } from "./context/AppContext";
 import ProtectedRoute from "./routes/PrivateRoute";
 
+import EmployeeRequests from "./pages/Dashboard/adimn/EmployeeRequests";
+import AdminDashboard from "./pages/Dashboard/adimn/AdminDashboard";
+import EmployeeDashboard from "./pages/Dashboard/employe/EmployeeDashboard";
+
 const App = () => {
   const { showLogin } = useAppContext();
+  const location = useLocation();
+  const isDashboard = location.pathname.startsWith("/dashboard");
 
   return (
     <>
-      <Navbar />
+      {!isDashboard && <Navbar />}
       {showLogin && <AuthModal />}
 
       <Routes>
         <Route path="/" element={<Home />} />
 
-        {/*  Protected routes */}
+        {/* Protected Dashboard Layout */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<DashboardLayout />} />
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route path="admin" element={<AdminDashboard />} />
+             <Route path="employee-requests" element={<EmployeeRequests />} />
+
+
+            <Route path="employee" element={<EmployeeDashboard />} />
+          </Route>
         </Route>
       </Routes>
 
-      <Footer />
+      {!isDashboard && <Footer />}
     </>
   );
 };
