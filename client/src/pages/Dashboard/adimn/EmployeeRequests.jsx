@@ -5,12 +5,12 @@ import Swal from "sweetalert2";
 import { useAppContext } from "../../../context/AppContext";
 import LoadingSpinner from "../../../components/reusable/LoadingSpinner";
 
-
 const EmployeeRequests = () => {
   const { token } = useAppContext();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // 🔹 Fetch pending employee requests
   const fetchRequests = async () => {
     try {
       const { data } = await axios.get(
@@ -26,34 +26,33 @@ const EmployeeRequests = () => {
     }
   };
 
-  const approveUser = async (id) => {
+  // 🔹 Update user role (admin or employee)
+  const handleRoleChange = async (userId, role) => {
     try {
       await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/users/update-role/${id}`,
-        { role: "employee" },
+        `${import.meta.env.VITE_API_URL}/api/users/update-role/${userId}`,
+        { role },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-  
-      
+
       Swal.fire({
-  position: "center",
-  icon: "success",
-  title: "Employee approved",
-  showConfirmButton: false,
-  timer: 500
-});
-fetchRequests();
-} catch {
-      
-      Swal.fire({
-      position: "center",
-       icon: "error",
-  
-      title: "Approval failed",
-      showConfirmButton: false,
-      timer: 500
+        position: "center",
+        icon: "success",
+        title: `User promoted to ${role}`,
+        showConfirmButton: false,
+        timer: 700,
       });
-      // toast.error("Approval failed");
+
+      fetchRequests(); // Refresh list
+    } catch (error) {
+      console.error("Role update failed:", error);
+      Swal.fire({
+        position: "center",
+        icon: "error",
+        title: "Role update failed",
+        showConfirmButton: false,
+        timer: 700,
+      });
     }
   };
 
@@ -65,9 +64,8 @@ fetchRequests();
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">
-        Pending Employee Requests
-      </h1>
+      <h1 className="text-2xl font-semibold mb-4">Pending Employee Requests</h1>
+
       {requests.length === 0 ? (
         <p className="text-gray-500">No pending requests.</p>
       ) : (
@@ -83,24 +81,30 @@ fetchRequests();
             </thead>
             <tbody>
               {requests.map((user) => (
-                <tr key={user._id} className="border-b">
+                <tr key={user._id} className="border-b hover:bg-gray-50">
                   <td className="p-3 flex items-center gap-3">
+                    {/* Hide image on small screens */}
                     <img
                       src={user.image}
                       alt={user.fullName}
-                      className="w-10 h-10 rounded-full object-cover"
+                      className="hidden sm:block w-10 h-10 rounded-full object-cover"
                     />
                     {user.fullName}
                   </td>
                   <td className="p-3">{user.email}</td>
                   <td className="p-3">{user.jobTitle}</td>
                   <td className="p-3 text-center">
-                    <button
-                      onClick={() => approveUser(user._id)}
-                      className="px-4 py-1 rounded-lg bg-green-500 text-white hover:bg-green-600"
+                    <select
+                      onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                      defaultValue=""
+                      className="border border-gray-300 rounded-md px-3 py-1 text-gray-700 bg-white hover:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
-                      Approve
-                    </button>
+                      <option value="" disabled>
+                        Select role
+                      </option>
+                      <option value="employee">Employee</option>
+                      <option value="admin">Admin</option>
+                    </select>
                   </td>
                 </tr>
               ))}

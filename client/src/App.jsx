@@ -10,6 +10,7 @@ import ProtectedRoute from "./routes/PrivateRoute";
 import EmployeeRequests from "./pages/Dashboard/adimn/EmployeeRequests";
 import AdminDashboard from "./pages/Dashboard/adimn/AdminDashboard";
 import EmployeeDashboard from "./pages/Dashboard/employe/EmployeeDashboard";
+import Profile from "./pages/Dashboard/roles/Profile";
 
 const App = () => {
   const { showLogin } = useAppContext();
@@ -27,10 +28,11 @@ const App = () => {
         {/* Protected Dashboard Layout */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
+          
             <Route path="admin" element={<AdminDashboard />} />
              <Route path="employee-requests" element={<EmployeeRequests />} />
 
-
+    <Route path="profile" element={<Profile />}></Route>
             <Route path="employee" element={<EmployeeDashboard />} />
           </Route>
         </Route>

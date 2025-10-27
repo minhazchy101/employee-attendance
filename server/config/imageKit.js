@@ -7,9 +7,9 @@ const imagekit = new ImageKit({
   urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
 });
 
-imagekit.listFiles({ limit: 1 }, (err, result) => {
-  if (err) console.error("❌ ImageKit Auth Failed:", err);
-  else console.log("✅ ImageKit Auth Works:", result);
-});
+// imagekit.listFiles({ limit: 1 }, (err, result) => {
+//   if (err) console.error(" ImageKit Auth Failed:", err);
+//   else console.log(" ImageKit Auth Works:", result);
+// });
 
 export default imagekit;

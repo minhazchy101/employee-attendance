@@ -1,27 +1,59 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAppContext } from "../../context/AppContext";
 import {
   FaUser,
   FaUsers,
-  FaChartLine,
   FaSignOutAlt,
   FaClipboardList,
   FaHome,
   FaClock,
   FaPaperPlane,
 } from "react-icons/fa";
+import axios from "axios";
+import LoadingSpinner from "../reusable/LoadingSpinner";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
-  const { profile, logout } = useAppContext();
+  const { profile, logout, token } = useAppContext();
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const isAdmin = profile?.role === "admin";
-const linkClass = ({ isActive }) =>
-  `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
-    isActive
-      ? "bg-indigo-600 text-white shadow-sm"
-      : "text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
-  }`;
-;
+
+  const linkClass = ({ isActive }) =>
+    `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
+      isActive
+        ? "bg-indigo-600 text-white shadow-sm"
+        : "text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+    }`;
+
+  const fetchRequests = async () => {
+    try {
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/users/all`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const pending = data.filter((u) => u.role === "pending request");
+      setRequests(pending);
+    } catch (error) {
+      console.error("Failed to fetch requests:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  // 🌀 Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full w-64 bg-white border-r shadow-md">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -36,8 +68,8 @@ const linkClass = ({ isActive }) =>
       {/* Sidebar */}
       <aside
         className={`fixed md:static z-40 h-full bg-white border-r w-64 flex flex-col justify-between shadow-md transform transition-transform duration-300
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-      `}
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+        `}
       >
         <div>
           {/* Logo / title */}
@@ -54,37 +86,35 @@ const linkClass = ({ isActive }) =>
               <FaHome /> Dashboard
             </NavLink>
 
+            <NavLink to="/dashboard/profile" className={linkClass}>
+              <FaUser /> Profile
+            </NavLink>
+
             {isAdmin ? (
               <>
-                <NavLink to="/dashboard/profile" className={linkClass}>
-                  <FaUser /> Profile
-                </NavLink>
                 <NavLink to="/dashboard/all-employees" className={linkClass}>
                   <FaUsers /> All Employees
                 </NavLink>
-                {/* <NavLink to="/dashboard/employee-requests" className={linkClass}>
-                   Employee Requests
-                </NavLink> */}
-                 <NavLink to="/dashboard/employee-requests" className={linkClass}>
-  <FaClipboardList />   Employee Requests 
-    {profile?.pendingCount > 0 && (
-      <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-        {profile.pendingCount}
-      </span>
-    )}
-  </NavLink>
+
+                <NavLink to="/dashboard/employee-requests" className={linkClass}>
+                  <FaClipboardList /> Employee Requests
+                  {requests.length > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                      {requests.length}
+                    </span>
+                  )}
+                </NavLink>
+
                 <NavLink to="/dashboard/leave-requests" className={linkClass}>
                   <FaPaperPlane /> Leave Requests
                 </NavLink>
               </>
             ) : (
               <>
-                <NavLink to="/dashboard/profile" className={linkClass}>
-                  <FaUser /> Profile
-                </NavLink>
                 <NavLink to="/dashboard/my-attendance" className={linkClass}>
                   <FaClock /> My Attendance
                 </NavLink>
+
                 <NavLink to="/dashboard/leave-request" className={linkClass}>
                   <FaPaperPlane /> Leave Request
                 </NavLink>

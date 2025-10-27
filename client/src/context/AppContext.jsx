@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, onIdTokenChanged, signOut } from "firebase/auth";
 import axios from "axios";
 import { auth } from "../firebase/firebase.config";
 import { useNavigate } from "react-router-dom";
@@ -7,56 +7,37 @@ import { useNavigate } from "react-router-dom";
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
+
   const [showLogin, setShowLogin] = useState(false);
-  const [user, setUser] = useState(null);       // minimal Firebase info
-  const [profile, setProfile] = useState(null); // full backend profile
-  const [token, setToken] = useState(null);     // backend JWT
+  const [user, setUser] = useState(null); // Firebase Auth user
+  const [profile, setProfile] = useState(null); // App-specific user data
+  const [token, setToken] = useState(null); // Firebase ID token
   const [loading, setLoading] = useState(true);
- 
-  console.log('user--> ', user)
-  
 
+  // 🔹 Initialize and manage Firebase Auth state
   useEffect(() => {
-    const savedToken = localStorage.getItem("access-token");
-    if (savedToken) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
-      setToken(savedToken);
-    }
-
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      console.log(currentUser)
       if (currentUser) {
         setUser(currentUser);
 
-
         try {
-          // Request backend JWT
-          const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/jwt`, {
-            email: currentUser.email,
-          });
+          // ✅ Get a fresh Firebase ID token
+          const idToken = await currentUser.getIdToken(true);
 
-          localStorage.setItem("access-token", data.token);
-          axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
-          setToken(data.token);
-          if (!currentUser) {
-            return   setLoading(true);
-          }
-          console.log('currentUser : ', currentUser)
-          // Fetch backend profile
-          fetchUserProfile(currentUser.email || '');
-        } catch (err) {
-          console.error("JWT fetch failed:", err);
-          setProfile(null);
-          setToken(null);
+          // Save token
+          localStorage.setItem("access-token", idToken);
+          axios.defaults.headers.common["Authorization"] = `Bearer ${idToken}`;
+          setToken(idToken);
+
+          // Fetch profile from backend
+          await fetchUserProfile(currentUser.email);
+        } catch (error) {
+          console.error("Error getting Firebase ID token:", error);
+          clearAuth();
         }
       } else {
-        // User logged out — cleanup
-        setUser(null);
-        setProfile(null);
-        setToken(null);
-        localStorage.removeItem("access-token");
-        delete axios.defaults.headers.common["Authorization"];
+        clearAuth();
       }
 
       setLoading(false);
@@ -65,8 +46,28 @@ export const AppProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  // Fetch detailed user profile from backend
+  // 🔄 Automatically refresh ID token when Firebase rotates it
+  useEffect(() => {
+    const unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        const idToken = await currentUser.getIdToken();
+        localStorage.setItem("access-token", idToken);
+        axios.defaults.headers.common["Authorization"] = `Bearer ${idToken}`;
+        setToken(idToken);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+  // ✅ Fetch fresh user profile when token updates
+useEffect(() => {
+  if (user?.email) fetchUserProfile(user.email);
+}, [token]);
+
+  // 🔹 Fetch the user's profile data from your backend
   const fetchUserProfile = async (email) => {
+    if (!email) return;
+
     try {
       const { data } = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/users/profile/${email}`
@@ -78,9 +79,17 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-
+  // 🔹 Logout handler
   const logout = async () => {
-    await signOut(auth);
+    try {
+      await signOut(auth);
+    } finally {
+      clearAuth();
+    }
+  };
+
+  // 🔹 Helper to clear all auth data
+  const clearAuth = () => {
     setUser(null);
     setProfile(null);
     setToken(null);
@@ -97,7 +106,7 @@ export const AppProvider = ({ children }) => {
     token,
     loading,
     logout,
-    fetchUserProfile, // expose to allow manual refresh
+    fetchUserProfile,
   };
 
   return (
@@ -107,5 +116,4 @@ export const AppProvider = ({ children }) => {
   );
 };
 
-// Custom hook to consume context
 export const useAppContext = () => useContext(AppContext);

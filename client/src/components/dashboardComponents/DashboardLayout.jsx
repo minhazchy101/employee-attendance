@@ -1,26 +1,30 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+
 import Sidebar from "./Sidebar";
 import { useAppContext } from "../../context/AppContext";
 import { FaBars } from "react-icons/fa";
+import { Outlet } from "react-router-dom";
 
 const DashboardLayout = () => {
-  const { profile } = useAppContext();
-  const navigate = useNavigate();
+  const { profile, loading,navigate } = useAppContext();
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    if (!profile) navigate("/");
-  }, [profile, navigate]);
+ useEffect(() => {
+  if (!loading && !profile) {
+    navigate("/");
+  }
+}, [loading, profile, navigate]);
 
   // Redirect /dashboard → specific dashboard page based on role
-  useEffect(() => {
-    if (profile?.role === "admin") {
-      navigate("/dashboard/admin");
-    } else if (profile?.role === "employee") {
-      navigate("/dashboard/employee");
-    }
-  }, [profile, navigate]);
+ useEffect(() => {
+  // only redirect if the user is exactly on /dashboard
+  if (!loading && profile && window.location.pathname === "/dashboard") {
+    if (profile.role === "admin") navigate("/dashboard/admin");
+    else if (profile.role === "employee") navigate("/dashboard/employee");
+  }
+}, [loading, profile, navigate]);
+
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
