@@ -1,16 +1,16 @@
-// src/pages/Dashboard/roles/EmployeeRequests.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useAppContext } from "../../../context/AppContext";
 import LoadingSpinner from "../../../components/reusable/LoadingSpinner";
+import { usePolish } from "../../../hooks/usePolish";
+
 
 const EmployeeRequests = () => {
   const { token } = useAppContext();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Fetch pending employee requests
   const fetchRequests = async () => {
     try {
       const { data } = await axios.get(
@@ -26,7 +26,6 @@ const EmployeeRequests = () => {
     }
   };
 
-  // 🔹 Update user role (admin or employee)
   const handleRoleChange = async (userId, role) => {
     try {
       await axios.put(
@@ -43,7 +42,8 @@ const EmployeeRequests = () => {
         timer: 700,
       });
 
-      fetchRequests(); // Refresh list
+      // You no longer need to manually call fetchRequests here
+      // Polish will update the list automatically
     } catch (error) {
       console.error("Role update failed:", error);
       Swal.fire({
@@ -58,7 +58,26 @@ const EmployeeRequests = () => {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [token]);
+
+  // 🔹 Polish real-time subscription
+  usePolish({
+  "user-change": ({ type, user }) => {
+    setRequests((prev) => {
+      // Remove user if role is no longer pending
+      const filtered = prev.filter((u) => u._id !== user._id);
+
+      if (
+        (type === "added" || type === "updated") &&
+        user.role === "pending request"
+      ) {
+        return [...filtered, user];
+      }
+      return filtered;
+    });
+  },
+});
+
 
   if (loading) return <LoadingSpinner />;
 
@@ -83,7 +102,6 @@ const EmployeeRequests = () => {
               {requests.map((user) => (
                 <tr key={user._id} className="border-b hover:bg-gray-50">
                   <td className="p-3 flex items-center gap-3">
-                    {/* Hide image on small screens */}
                     <img
                       src={user.image}
                       alt={user.fullName}

@@ -1,6 +1,8 @@
+// src/components/layout/Sidebar.jsx
 import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAppContext } from "../../context/AppContext";
+import { usePolish } from "../../hooks/usePolish"; // Real-time hook
 import {
   FaUser,
   FaUsers,
@@ -42,11 +44,30 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     }
   };
 
+  // Fetch initial requests
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [token]);
 
-  // 🌀 Loading state
+  // 🟢 Real-time updates for pending requests
+  usePolish({
+    "user-change": ({ type, user }) => {
+      setRequests((prev) => {
+        const isPending = user.role === "pending request";
+        if (type === "added" && isPending) {
+          return [...prev, user];
+        }
+        if (type === "updated") {
+          // Remove user if they are no longer pending
+          const filtered = prev.filter((u) => u._id !== user._id);
+          if (isPending) filtered.push(user); // add if updated to pending
+          return filtered;
+        }
+        return prev;
+      });
+    },
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full w-64 bg-white border-r shadow-md">
