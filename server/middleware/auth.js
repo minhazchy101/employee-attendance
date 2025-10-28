@@ -39,3 +39,20 @@ export const verifyAdmin = async (req, res, next) => {
     }
   });
 };
+
+// Verify Employee Role
+export const verifyEmployee = async (req, res, next) => {
+  await verifyToken(req, res, async () => {
+    try {
+      const email = req.user.email;
+      const user = await User.findOne({ email });
+      if (!user || user.role !== "employee") {
+        return res.status(403).json({ message: "Employee only" });
+      }
+      next();
+    } catch (err) {
+      res.status(500).json({ message: "Server error", error: err.message });
+    }
+  });
+};
+

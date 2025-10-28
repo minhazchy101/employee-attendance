@@ -6,6 +6,7 @@ import UsersRoute from "./routes/userRoutes.js";
 import jwtRoute from "./routes/jwt.js";
 import http from "http";
 import { Server } from "socket.io";
+import attendanceRoutes from "./routes/attendanceRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
 });
 app.use("/", jwtRoute);
 app.use("/api/users", UsersRoute);
+app.use("/api/attendance", attendanceRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

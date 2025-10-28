@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppContext } from "../context/AppContext";
+import Attendance from "./Attendance";
 
 
 const Hero = () => {
@@ -39,6 +40,8 @@ const Hero = () => {
       <button onClick={()=>logout()}  className="bg-primary hover:bg-primary-dull text-white px-6 py-3 rounded-full font-medium transition cursor-pointer">LogOut</button>
       }
       </div>
+
+      <Attendance/>
     </div>
   );
 };

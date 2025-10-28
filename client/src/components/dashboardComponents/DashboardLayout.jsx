@@ -1,30 +1,27 @@
 import React, { useState, useEffect } from "react";
-
 import Sidebar from "./Sidebar";
 import { useAppContext } from "../../context/AppContext";
 import { FaBars } from "react-icons/fa";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 const DashboardLayout = () => {
-  const { profile, loading,navigate } = useAppContext();
-  
+  const { profile, loading, navigate } = useAppContext();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
- useEffect(() => {
-  if (!loading && !profile) {
-    navigate("/");
-  }
-}, [loading, profile, navigate]);
+  // ✅ Redirect non-authenticated users
+  useEffect(() => {
+    if (!loading && !profile) {
+      navigate("/");
+    }
+  }, [loading, profile, navigate]);
 
-  // Redirect /dashboard → specific dashboard page based on role
- useEffect(() => {
-  // only redirect if the user is exactly on /dashboard
-  if (!loading && profile && window.location.pathname === "/dashboard") {
-    if (profile.role === "admin") navigate("/dashboard/admin");
-    else if (profile.role === "employee") navigate("/dashboard/employee");
-  }
-}, [loading, profile, navigate]);
-
+  // ✅ If user visits /dashboard, go to /dashboard
+  useEffect(() => {
+    if (!loading && profile && location.pathname === "/dashboard") {
+      navigate("/dashboard");
+    }
+  }, [loading, profile, navigate, location.pathname]);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -42,16 +39,19 @@ const DashboardLayout = () => {
             >
               <FaBars size={22} />
             </button>
+
             <h1 className="text-lg font-semibold text-gray-800">
-              {profile?.role === "admin"
-                ? "Admin Dashboard"
-                : "Employee Dashboard"}
+              Dashboard
             </h1>
+          </div>
+
+          <div className="text-sm text-gray-600 capitalize">
+            {profile?.role}
           </div>
         </header>
 
         {/* Dashboard content */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto bg-gray-50">
           <Outlet />
         </main>
       </div>

@@ -107,6 +107,8 @@ useEffect(() => {
     loading,
     logout,
     fetchUserProfile,
+    axios
+
   };
 
   return (

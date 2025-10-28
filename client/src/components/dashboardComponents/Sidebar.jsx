@@ -99,48 +99,37 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             <p className="text-sm text-gray-500 mt-1 capitalize">
               {profile?.role || "user"}
             </p>
+
+            
           </div>
 
           {/* Navigation */}
           <nav className="p-4 flex flex-col gap-2">
-            <NavLink to="/dashboard" end className={linkClass}>
-              <FaHome /> Dashboard
-            </NavLink>
+           <NavLink to="/dashboard" end className={linkClass}>
+  <FaHome /> Dashboard
+</NavLink>
 
-            <NavLink to="/dashboard/profile" className={linkClass}>
-              <FaUser /> Profile
-            </NavLink>
+<NavLink to="/dashboard/attendance-history" className={linkClass}>
+  <FaClock /> Attendance History
+</NavLink>
 
-            {isAdmin ? (
-              <>
-                <NavLink to="/dashboard/all-employees" className={linkClass}>
-                  <FaUsers /> All Employees
-                </NavLink>
+<NavLink to="/dashboard/profile" className={linkClass}>
+  <FaUser /> Profile
+</NavLink>
 
-                <NavLink to="/dashboard/employee-requests" className={linkClass}>
-                  <FaClipboardList /> Employee Requests
-                  {requests.length > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                      {requests.length}
-                    </span>
-                  )}
-                </NavLink>
+{isAdmin && (
+  <>
+    <NavLink to="/dashboard/all-employees" className={linkClass}>
+      <FaUsers /> All Employees
+    </NavLink>
 
-                <NavLink to="/dashboard/leave-requests" className={linkClass}>
-                  <FaPaperPlane /> Leave Requests
-                </NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink to="/dashboard/my-attendance" className={linkClass}>
-                  <FaClock /> My Attendance
-                </NavLink>
+    <NavLink to="/dashboard/employee-requests" className={linkClass}>
+      <FaClipboardList /> Employee Requests
+      {requests.length > 0 && <span className="ml-auto ...">{requests.length}</span>}
+    </NavLink>
+  </>
+)}
 
-                <NavLink to="/dashboard/leave-request" className={linkClass}>
-                  <FaPaperPlane /> Leave Request
-                </NavLink>
-              </>
-            )}
           </nav>
         </div>
 
