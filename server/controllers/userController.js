@@ -117,3 +117,55 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
+
+
+
+export const updateUserProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { fullName, jobTitle, phoneNumber, niNumber } = req.body;
+
+    // 🔹 Step 1: Find existing user
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 🔹 Step 2: Handle image upload if new file present
+    let imageUrl = existingUser.image;
+    if (req.file) {
+      const uploadResponse = await imagekit.upload({
+        file: req.file.buffer,
+        fileName: req.file.originalname,
+      });
+      imageUrl = uploadResponse.url;
+    }
+
+    // 🔹 Step 3: Update user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        fullName,
+        jobTitle,
+        phoneNumber,
+        niNumber,
+        image: imageUrl,
+      },
+      { new: true }
+    );
+
+    // 🔹 Step 4: Emit event (use req.app.get("io") safely)
+    const io = req.app.get("io");
+    io.emit("user-change", { type: "updated", user: updatedUser });
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};

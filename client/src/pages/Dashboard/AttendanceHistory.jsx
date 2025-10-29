@@ -9,8 +9,7 @@ const AttendanceHistory = () => {
   const [records, setRecords] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [filterDate, setFilterDate] = useState("");
 
   const fetchMyAttendance = async () => {
     try {
@@ -28,34 +27,22 @@ const AttendanceHistory = () => {
     }
   };
 
-  // Filter records based on date range
+  // Filter records based on a single date
   const handleFilter = () => {
-    if (!startDate && !endDate) {
+    if (!filterDate) {
       setFiltered(records);
       return;
     }
 
-    const filteredData = records.filter((rec) => {
-      const recDate = new Date(rec.date);
-      const start = startDate ? new Date(startDate) : null;
-      const end = endDate ? new Date(endDate) : null;
-
-      if (start && end)
-        return recDate >= start && recDate <= end;
-      if (start)
-        return recDate >= start;
-      if (end)
-        return recDate <= end;
-
-      return true;
-    });
+    const filteredData = records.filter(
+      (rec) => rec.date === filterDate
+    );
 
     setFiltered(filteredData);
   };
 
   const clearFilter = () => {
-    setStartDate("");
-    setEndDate("");
+    setFilterDate("");
     setFiltered(records);
   };
 
@@ -74,24 +61,12 @@ const AttendanceHistory = () => {
       <div className="bg-white shadow-md rounded-lg p-4 mt-6 flex flex-col sm:flex-row gap-4 sm:items-end">
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-700 mb-1">
-            From Date
+            Select Date
           </label>
           <input
             type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700 mb-1">
-            To Date
-          </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -115,7 +90,7 @@ const AttendanceHistory = () => {
       {/* 🧾 Attendance Table / Cards */}
       <div className="bg-white shadow-md rounded-lg mt-6 overflow-hidden">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+          <div className="flex flex-col items-center justify-center min-h-screen py-16 text-gray-500">
             <LoadingSpinner size="lg" className="mb-3" />
             <span>Loading attendance records...</span>
           </div>
