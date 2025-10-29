@@ -7,6 +7,7 @@ export const markAttendance = async (req, res) => {
   try {
     const userEmail = req.user.email; // ✅ from token middleware
     const today = new Date().toISOString().split("T")[0];
+   const { status, method } = req.body;
 
     // ✅ Check existing attendance for today
     const existing = await Attendance.findOne({ userEmail, date: today });
@@ -17,7 +18,8 @@ export const markAttendance = async (req, res) => {
     // ✅ Create new attendance record
     const attendance = new Attendance({
       userEmail,
-      status: "Attend", // ✅ must match your enum
+      status , // ✅ must match your enum
+      method,
       date: today,
     });
     await attendance.save();

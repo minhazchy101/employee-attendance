@@ -5,26 +5,26 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navItems = [
-    { name: 'Home', path: '/' },
-    { name: 'About', path: '/about' },
-    { name: 'Attendance', path: '/attendance' },
+    { name: 'HOME', path: '/' },
+    { name: 'ABOUT', path: '/about' },
+
   ];
 
   const baseLink =
-    'relative text-white transition-all duration-300 ease-in-out px-2 py-1 ' +
+    'relative text-primary transition-all duration-300 ease-in-out px-2 py-1 ' +
     ' after:content-[""] after:absolute after:left-0 after:bottom-0 ' +
-    'after:h-[2px] after:bg-white after:transition-all after:duration-300 ' +
+    'after:h-[2px] after:bg-primary after:transition-all after:duration-300 ' +
     'after:w-0 hover:after:w-full';
 
   const activeLink =
     'font-medium after:w-full after:opacity-100';
 
   return (
-    <nav className="w-full fixed top-0 left-0 z-50 backdrop-blur bg-primary text-white shadow-sm">
+    <nav className="w-full fixed top-0 left-0 z-50 backdrop-blur bg-black text-primary shadow-sm">
       <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-16">
         {/* Logo */}
         <NavLink to="/" className="flex items-center gap-2">
-        <h1 className="text-2xl text-white/80">
+        <h1 className="text-2xl text-primary/80">
              Attendance<span className="text-light font-semibold">Pro</span>
         </h1>
      
@@ -37,7 +37,7 @@ const Navbar = () => {
               key={item.name}
               to={item.path}
               className={({ isActive }) =>
-                `text-white ${baseLink} ${isActive ? activeLink : ''}`
+                `text-primary text-sm ${baseLink} ${isActive ? activeLink : ''}`
               }
             >
               {item.name}
@@ -48,7 +48,7 @@ const Navbar = () => {
         {/* Mobile Toggle */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="md:hidden p-2 text-white hover:bg-white/10 rounded transition-all duration-300 cursor-pointer"
+          className="md:hidden p-2 text-primary hover:bg-primary/10 rounded transition-all duration-300 cursor-pointer"
           aria-label="Toggle Menu"
         >
           {menuOpen ? (
@@ -77,7 +77,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div
-        className={`absolute top-16 left-0 w-full bg-primary text-white overflow-hidden transition-all duration-500 ease-in-out transform ${
+        className={`absolute top-16 left-0 w-full bg-black text-primary overflow-hidden transition-all duration-500 ease-in-out transform ${
           menuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
         }`}
       >

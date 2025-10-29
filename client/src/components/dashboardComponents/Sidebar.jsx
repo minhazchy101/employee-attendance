@@ -35,7 +35,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         `${import.meta.env.VITE_API_URL}/api/users/all`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const pending = data.filter((u) => u.role === "pending request");
+      const pending = data.filter((u) => u?.role === "pending request");
       setRequests(pending);
     } catch (error) {
       console.error("Failed to fetch requests:", error);
@@ -44,6 +44,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     }
   };
 
+ 
   // Fetch initial requests
   useEffect(() => {
     fetchRequests();
@@ -53,7 +54,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   usePolish({
     "user-change": ({ type, user }) => {
       setRequests((prev) => {
-        const isPending = user.role === "pending request";
+        const isPending = user?.role === "pending request";
         if (type === "added" && isPending) {
           return [...prev, user];
         }
@@ -119,8 +120,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
 {isAdmin && (
   <>
-    <NavLink to="/dashboard/all-employees" className={linkClass}>
-      <FaUsers /> All Employees
+    <NavLink to="/dashboard/all" className={linkClass}>
+      <FaUsers /> All 
     </NavLink>
 
     <NavLink to="/dashboard/employee-requests" className={linkClass}>

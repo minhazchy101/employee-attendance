@@ -2,47 +2,56 @@ import React from "react";
 import { useAppContext } from "../context/AppContext";
 import Attendance from "./Attendance";
 
-
 const Hero = () => {
-  const { setShowLogin, profile, loading,logout, navigate } = useAppContext();
- 
+  const { setShowLogin, profile, loading, logout, navigate } = useAppContext();
 
   const handleGetStarted = () => {
-    if (loading) return; // wait until context finishes loading
+    if (loading) return;
     if (profile) {
-      navigate("/dashboard"); // go to dashboard if profile exists
+      navigate("/dashboard");
     } else {
-      setShowLogin(true); // open login/signup modal
+      setShowLogin(true);
     }
   };
 
   return (
-    <div className="my-20 text-center">
-      <h1 className="text-4xl md:text-6xl font-semibold max-w-3xl mx-auto mt-8 text-slate-900 leading-tight">
-        Smart Employee Attendance Tracking Made Simple
+    <section className="my-24 text-center font-[nautilus_pompiliusregular]">
+      {/* --- Headline --- */}
+      <h1 className="text-4xl md:text-6xl font-semibold max-w-2xl mx-auto text-black leading-tight">
+        Smarter Attendance.  
+        <span className="text-primary"> Simplified Workflows.</span>
       </h1>
 
-      <p className="text-base md:text-lg text-slate-600 mx-auto max-w-2xl mt-4 px-4">
-        Automate daily check-ins, monitor employee presence in real-time, and
-        eliminate manual errors — all from a single, intuitive dashboard.
+      {/* --- Subheadline --- */}
+      <p className="text-base md:text-lg text-secondary mx-auto max-w-xl mt-6 px-6 leading-relaxed">
+        Streamline employee tracking with real-time insights and automated records —  
+        so you can focus on people, not paperwork.
       </p>
 
-      <div className="mt-6 flex items-center justify-center">
+      {/* --- Buttons --- */}
+      <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
         <button
           onClick={handleGetStarted}
-          className="bg-primary hover:bg-primary-dull text-white px-6 py-3 rounded-full font-medium transition cursor-pointer"
+          className="bg-primary hover:opacity-90 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 cursor-pointer"
         >
           Get Started
         </button>
-      
-      {profile &&
-      
-      <button onClick={()=>logout()}  className="bg-primary hover:bg-primary-dull text-white px-6 py-3 rounded-full font-medium transition cursor-pointer">LogOut</button>
-      }
+
+        {profile && (
+          <button
+            onClick={logout}
+            className="bg-black hover:opacity-90 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 cursor-pointer"
+          >
+            Log Out
+          </button>
+        )}
       </div>
 
-      <Attendance/>
-    </div>
+      {/* --- Demo / Preview Section --- */}
+      <div className="mt-16">
+        <Attendance />
+      </div>
+    </section>
   );
 };
 

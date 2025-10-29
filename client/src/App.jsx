@@ -12,6 +12,8 @@ import AdminDashboard from "./pages/Dashboard/adimn/AdminDashboard";
 import EmployeeDashboard from "./pages/Dashboard/employe/EmployeeDashboard";
 import Profile from "./pages/Dashboard/roles/Profile";
 import DashboardHome from "./pages/Dashboard/DashboardHome";
+import AttendanceHistory from "./pages/Dashboard/AttendanceHistory";
+import AllEmployees from "./pages/Dashboard/adimn/AllEmployees";
 
 const App = () => {
   const { showLogin } = useAppContext();
@@ -29,11 +31,11 @@ const App = () => {
         {/* Protected Dashboard Layout */}
         <Route element={<ProtectedRoute />}>
          <Route path="/dashboard" element={<DashboardLayout />}>
-    <Route index element={<DashboardHome />} />                // /dashboard
-    {/* <Route path="attendance-history" element={<AttendancePage />} /> */}
+    <Route index element={<DashboardHome />} />           
+    <Route path="attendance-history" element={<AttendanceHistory />} />
     <Route path="profile" element={<Profile />} />
     { /* admin only */ }
-    {/* <Route path="all-employees" element={<AllEmployees />} /> */}
+    <Route path="all" element={<AllEmployees />} />
     <Route path="employee-requests" element={<EmployeeRequests />} />
   </Route>
         </Route>

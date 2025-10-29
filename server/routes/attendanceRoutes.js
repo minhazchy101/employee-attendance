@@ -12,7 +12,7 @@ const attendanceRoutes = express.Router();
 
 // Employee
 attendanceRoutes.post("/mark", verifyToken, markAttendance);    // mark either Attend or Absence
-attendanceRoutes.get("/my", verifyEmployee, getMyAttendance);      // history for logged-in user
+attendanceRoutes.get("/my", verifyToken, getMyAttendance);      // history for logged-in user
 attendanceRoutes.get("/today", verifyToken, getTodayStatus);       // today's status (for profile/dashboard)
 
 // Admin

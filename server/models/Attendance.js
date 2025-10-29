@@ -17,7 +17,7 @@ const attendanceSchema = new mongoose.Schema(
     },
     method: {
       type: String, // "manual" | "auto"
-      default: "manual",
+      required: true,
     },
   },
   { timestamps: true }
