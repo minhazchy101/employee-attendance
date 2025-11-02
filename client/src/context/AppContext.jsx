@@ -14,6 +14,7 @@ export const AppProvider = ({ children }) => {
   const [profile, setProfile] = useState(null); // App-specific user data
   const [token, setToken] = useState(null); // Firebase ID token
   const [loading, setLoading] = useState(true);
+   const [pendingRequests, setPendingRequests] = useState([]);
 
   // 🔹 Initialize and manage Firebase Auth state
   useEffect(() => {
@@ -66,18 +67,22 @@ useEffect(() => {
 
   // 🔹 Fetch the user's profile data from your backend
   const fetchUserProfile = async (email) => {
-    if (!email) return;
+  if (!email) return null;
 
-    try {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/users/profile/${email}`
-      );
-      setProfile(data);
-    } catch (error) {
-      console.error("Failed to fetch user profile:", error);
-      setProfile(null);
-    }
-  };
+  try {
+    const { data } = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/users/profile/${email}`
+    );
+     const profileData = data.user || data;
+     console.log('profileData : ', profileData)
+    setProfile(profileData);
+    return profileData; // ✅ Return the fetched profile
+  } catch (error) {
+    console.error("Failed to fetch user profile:", error);
+    setProfile(null);
+    return null; // ✅ Return null on error
+  }
+};
 
   // 🔹 Logout handler
   const logout = async () => {
@@ -107,7 +112,9 @@ useEffect(() => {
     loading,
     logout,
     fetchUserProfile,
-    axios
+    axios,
+    pendingRequests, 
+    setPendingRequests
 
   };
 

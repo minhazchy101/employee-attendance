@@ -9,14 +9,12 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
-  // ✅ Redirect non-authenticated users
   useEffect(() => {
     if (!loading && !profile) {
       navigate("/");
     }
   }, [loading, profile, navigate]);
 
-  // ✅ If user visits /dashboard, go to /dashboard
   useEffect(() => {
     if (!loading && profile && location.pathname === "/dashboard") {
       navigate("/dashboard");
@@ -34,20 +32,14 @@ const DashboardLayout = () => {
         <header className="flex items-center justify-between bg-white shadow-sm p-4 border-b">
           <div className="flex items-center gap-3">
             <button
-              className="md:hidden text-gray-600"
+              className="md:hidden text-gray-600 hover:text-primary transition"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
               <FaBars size={22} />
             </button>
-
-            <h1 className="text-lg font-semibold text-gray-800">
-              Dashboard
-            </h1>
+            <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
           </div>
-
-          <div className="text-sm text-gray-600 capitalize">
-            {profile?.role}
-          </div>
+          <div className="text-sm text-gray-600 capitalize">{profile?.role}</div>
         </header>
 
         {/* Dashboard content */}

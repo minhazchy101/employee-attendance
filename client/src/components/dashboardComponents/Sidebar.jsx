@@ -1,8 +1,7 @@
-// src/components/layout/Sidebar.jsx
-import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import React, { useEffect } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAppContext } from "../../context/AppContext";
-import { usePolish } from "../../hooks/usePolish"; // Real-time hook
+
 import {
   FaUser,
   FaUsers,
@@ -10,76 +9,47 @@ import {
   FaClipboardList,
   FaHome,
   FaClock,
-  FaPaperPlane,
+  FaPassport,
 } from "react-icons/fa";
-import axios from "axios";
+
 import LoadingSpinner from "../reusable/LoadingSpinner";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
-  const { profile, logout, token } = useAppContext();
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { profile, logout, pendingRequests, loading } = useAppContext();
+  const navigate = useNavigate();
+ 
+
 
   const isAdmin = profile?.role === "admin";
+  const hasCompleteProfile = profile?.isProfileComplete; // flag for complete profile
+
+  // Protect Dashboard access
+  useEffect(() => {
+    if (!loading && !hasCompleteProfile) {
+      navigate("/dashboard/complete-profile");
+    }
+  }, [loading, hasCompleteProfile]);
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
       isActive
-        ? "bg-indigo-600 text-white shadow-sm"
-        : "text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+        ? "bg-primary text-white shadow-md"
+        : "text-gray-700 hover:bg-primary/10 hover:text-primary"
     }`;
-
-  const fetchRequests = async () => {
-    try {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/users/all`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const pending = data.filter((u) => u?.role === "pending request");
-      setRequests(pending);
-    } catch (error) {
-      console.error("Failed to fetch requests:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
- 
-  // Fetch initial requests
-  useEffect(() => {
-    fetchRequests();
-  }, [token]);
-
-  // 🟢 Real-time updates for pending requests
-  usePolish({
-    "user-change": ({ type, user }) => {
-      setRequests((prev) => {
-        const isPending = user?.role === "pending request";
-        if (type === "added" && isPending) {
-          return [...prev, user];
-        }
-        if (type === "updated") {
-          // Remove user if they are no longer pending
-          const filtered = prev.filter((u) => u._id !== user._id);
-          if (isPending) filtered.push(user); // add if updated to pending
-          return filtered;
-        }
-        return prev;
-      });
-    },
-  });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full w-64 bg-white border-r shadow-md">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
+console.log('pendingRequests : ', pendingRequests.length)
+  
+  
+if (loading) {
+  return (
+    <div className="flex items-center justify-center h-full w-64 bg-white border-r shadow-md">
+      <LoadingSpinner size="lg" />
+    </div>
+  );
+}
+  
+console.log(profile)
   return (
     <>
-      {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-30 md:hidden"
@@ -87,50 +57,61 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         />
       )}
 
-      {/* Sidebar */}
       <aside
-        className={`fixed md:static z-40 h-full bg-white border-r w-64 flex flex-col justify-between shadow-md transform transition-transform duration-300
+        className={`fixed md:static z-40 h-full bg-white border-r w-64 flex flex-col justify-between shadow-lg transform transition-transform duration-300
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
         <div>
-          {/* Logo / title */}
+          {/* Logo */}
           <div className="p-6 border-b">
-            <h2 className="text-xl font-bold text-indigo-600">WorkTrack</h2>
-            <p className="text-sm text-gray-500 mt-1 capitalize">
-              {profile?.role || "user"}
-            </p>
-
-            
+            <h2 className="text-2xl font-bold text-primary">WorkTrack</h2>
+            <p className="text-sm text-gray-500 mt-1 capitalize">{profile?.role || "user"}</p>
           </div>
 
           {/* Navigation */}
           <nav className="p-4 flex flex-col gap-2">
-           <NavLink to="/dashboard" end className={linkClass}>
-  <FaHome /> Dashboard
-</NavLink>
+            {/* Always show complete profile */}
+            {!hasCompleteProfile &&  
+            
+            <NavLink to="/dashboard/complete-profile" end className={linkClass}>
+              <FaPassport /> Complete Profile
+            </NavLink>
+            }
 
-<NavLink to="/dashboard/attendance-history" className={linkClass}>
-  <FaClock /> Attendance History
-</NavLink>
+            {/* Only accessible if profile is complete */}
+            {hasCompleteProfile && (
+              <>
+                <NavLink to="/dashboard" end className={linkClass}>
+                  <FaHome /> Dashboard
+                </NavLink>
 
-<NavLink to="/dashboard/profile" className={linkClass}>
-  <FaUser /> Profile
-</NavLink>
+                <NavLink to="/dashboard/attendance-history" className={linkClass}>
+                  <FaClock /> Attendance History
+                </NavLink>
 
-{isAdmin && (
-  <>
-    <NavLink to="/dashboard/all" className={linkClass}>
-      <FaUsers /> All 
-    </NavLink>
+                <NavLink to="/dashboard/profile" className={linkClass}>
+                  <FaUser /> Profile
+                </NavLink>
 
-    <NavLink to="/dashboard/employee-requests" className={linkClass}>
-      <FaClipboardList /> Employee Requests
-      {requests.length > 0 && <span className="ml-auto ...">{requests.length}</span>}
-    </NavLink>
-  </>
-)}
+                {isAdmin && (
+                  <>
+                    <NavLink to="/dashboard/all" className={linkClass}>
+                      <FaUsers /> All Users
+                    </NavLink>
 
+                    <NavLink to="/dashboard/employee-requests" className={linkClass}>
+                      <FaClipboardList /> Employee Requests
+                      { pendingRequests.length > 0 && (
+                        <span className="ml-auto bg-secondary text-white rounded-full px-2 py-0.5 text-xs font-semibold">
+                          { pendingRequests.length}
+                        </span>
+                      )}
+                    </NavLink>
+                  </>
+                )}
+              </>
+            )}
           </nav>
         </div>
 

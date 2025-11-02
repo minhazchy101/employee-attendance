@@ -3,7 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import Attendance from "./Attendance";
 
 const Hero = () => {
-  const { setShowLogin, profile, loading, logout, navigate } = useAppContext();
+  const { setShowLogin, profile, loading, logout, navigate, user } = useAppContext();
 
   const handleGetStarted = () => {
     if (loading) return;
@@ -37,7 +37,7 @@ const Hero = () => {
           Get Started
         </button>
 
-        {profile && (
+        {user && (
           <button
             onClick={logout}
             className="bg-black hover:opacity-90 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 cursor-pointer"

@@ -107,7 +107,7 @@ const Profile = () => {
       </div>
     );
   }
-
+console.log(formData.jobTitle)
   return (
     <div className="p-6">
       <PageHeader
@@ -150,6 +150,9 @@ const Profile = () => {
               Supported formats: JPG, PNG, under 5MB.
             </p>
           </div>
+
+{formData.jobTitle === "BOSS" && <p>License</p>}
+          
         </div>
 
         {/* === Input Fields === */}

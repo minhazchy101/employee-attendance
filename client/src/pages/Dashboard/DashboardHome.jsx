@@ -163,119 +163,107 @@ const DashboardHome = () => {
 
   // === Render ===
   return (
-    <div className="p-6">
-      <PageHeader
-        title="Dashboard"
-        subtitle="Your real-time attendance overview."
-      />
-      {/* --- Today's Marking --- */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-primary">
-            Today: {summary?.date}
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Status:{" "}
-            <span
-              className={`font-semibold ${
-                summary?.status === "Attend"
-                  ? "text-green-600"
-                  : summary?.status === "Absence"
-                  ? "text-red-600"
-                  : "text-gray-700"
-              }`}
-            >
-              {summary?.status || "Not marked"}
-            </span>
+   <div className="p-6 space-y-10">
+  <PageHeader
+    title="Dashboard"
+    subtitle="Your real-time attendance overview."
+  />
+
+  {/* Today's Attendance */}
+  <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition hover:shadow-lg">
+    <div>
+      <h3 className="text-lg font-semibold text-primary">
+        Today: {summary?.date}
+      </h3>
+      <p className="text-sm text-gray-600 mt-1">
+        Status:{" "}
+        <span
+          className={`font-semibold ${
+            summary?.status === "Attend"
+              ? "text-green-600"
+              : summary?.status === "Absence"
+              ? "text-red-600"
+              : "text-gray-700"
+          }`}
+        >
+          {summary?.status || "Not marked"}
+        </span>
+      </p>
+    </div>
+
+    <div className="flex items-center gap-3">
+      {!summary?.record ? (
+        <>
+          <button
+            onClick={() => handleMarkAttendance("Attend", "manual")}
+            disabled={marking}
+            className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 transition"
+          >
+            {marking ? "Marking..." : "Mark Attend"}
+          </button>
+          <button
+            onClick={() => handleMarkAttendance("Absence", "manual")}
+            disabled={marking}
+            className="bg-secondary text-white px-4 py-2 rounded-md hover:bg-secondary/90 disabled:opacity-50 transition"
+          >
+            Mark Absence
+          </button>
+          <p className="text-xs text-gray-500 ml-2">
+            Auto-mark in {Math.round(AUTO_TIMEOUT_MS / 1000)}s if no action.
           </p>
+        </>
+      ) : (
+        <div className="text-sm text-gray-600">
+          Marked by:{" "}
+          <span className="font-medium">{summary.record?.method || "manual"}</span>
         </div>
+      )}
+    </div>
+  </div>
 
-        <div className="flex items-center gap-3">
-          {!summary?.record ? (
-            <>
-              <button
-                onClick={() => handleMarkAttendance("Attend", "manual")}
-                disabled={marking}
-                className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 transition"
-              >
-                {marking ? "Marking..." : "Mark Attend"}
-              </button>
-              <button
-                onClick={() => handleMarkAttendance("Absence", "manual")}
-                disabled={marking}
-                className="bg-secondary text-white px-4 py-2 rounded-md hover:bg-secondary/90 disabled:opacity-50 transition"
-              >
-                Mark Absence
-              </button>
-              <p className="text-xs text-gray-500 ml-2">
-                Auto-mark in {Math.round(AUTO_TIMEOUT_MS / 1000)}s if no action.
-              </p>
-            </>
-          ) : (
-            <div className="text-sm text-gray-600">
-              Marked by:{" "}
-              <span className="font-medium">
-                {summary.record?.method || "manual"}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+  {/* Stats Cards */}
+  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <StatsCard
+      label="Today's Status"
+      value={summary?.status || "Not marked"}
+      icon={FaUserCheck}
+      color={summary?.status === "Attend" ? "green" : "red"}
+    />
+    <StatsCard label="Present Days" value={present} icon={FaCalendarCheck} color="blue" />
+    <StatsCard label="Attendance Ratio" value={`${ratio}%`} icon={FaChartPie} color="indigo" />
+  </div>
 
-      <div className="mt-10">
-        {/* --- Stats Cards --- */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-          <StatsCard
-            label="Today's Status"
-            value={summary?.status || "Not marked"}
-            icon={FaUserCheck}
-            color={summary?.status === "Attend" ? "green" : "red"}
-          />
-          <StatsCard
-            label="Present Days (This Month)"
-            value={present}
-            icon={FaCalendarCheck}
-            color="blue"
-          />
-          <StatsCard
-            label="Attendance Ratio"
-            value={`${ratio}%`}
-            icon={FaChartPie}
-            color="indigo"
-          />
-        </div>
-
-        {/* --- Pie Chart --- */}
-        <div className="mt-10 bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-300">
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-primary mb-3">
-              Monthly Attendance Overview
-            </h2>
-            <p className="text-gray-600 text-sm mb-4">
-              Visual summary of your monthly attendance — updates live.
-            </p>
-            <div className="w-64 h-64 mx-auto md:mx-0">
-              <Pie key={ratio} data={pieData} options={pieOptions} />
-            </div>
-          </div>
-
-          <div className="flex-1 grid sm:grid-cols-3 gap-4 w-full">
-            <div className="p-4 rounded-lg text-center shadow-sm bg-primary/5 border border-primary/20">
-              <p className="text-sm text-gray-500">Present</p>
-              <p className="text-2xl font-bold text-primary">{present}</p>
-            </div>
-            <div className="p-4 rounded-lg text-center shadow-sm bg-secondary/5 border border-secondary/20">
-              <p className="text-sm text-gray-500">Absent</p>
-              <p className="text-2xl font-bold text-secondary">{absent}</p>
-            </div>
-            <div className="p-4 rounded-lg text-center shadow-sm bg-green-50 border border-green-200">
-              <p className="text-sm text-gray-500">Ratio</p>
-              <p className="text-2xl font-bold text-green-600">{ratio}%</p>
-            </div>
-          </div>
-        </div>
+  {/* Pie Chart */}
+  <div className="mt-10 bg-white p-6 rounded-xl shadow-md border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-8 transition hover:shadow-lg">
+    <div className="flex-1">
+      <h2 className="text-lg font-semibold text-primary mb-3">
+        Monthly Attendance Overview
+      </h2>
+      <p className="text-gray-600 text-sm mb-4">
+        Visual summary of your monthly attendance — updates live.
+      </p>
+      <div className="w-64 h-64 mx-auto md:mx-0">
+        <Pie key={ratio} data={pieData} options={pieOptions} />
       </div>
     </div>
+
+    <div className="flex-1 grid sm:grid-cols-3 gap-4 w-full">
+      <div className="p-4 rounded-lg text-center shadow-sm bg-primary/10 border border-primary/20 transition hover:shadow-md">
+        <p className="text-sm text-gray-500">Present</p>
+        <p className="text-2xl font-bold text-primary">{present}</p>
+      </div>
+      <div className="p-4 rounded-lg text-center shadow-sm bg-secondary/10 border border-secondary/20 transition hover:shadow-md">
+        <p className="text-sm text-gray-500">Absent</p>
+        <p className="text-2xl font-bold text-secondary">{absent}</p>
+      </div>
+      <div className="p-4 rounded-lg text-center shadow-sm bg-green-50 border border-green-200 transition hover:shadow-md">
+        <p className="text-sm text-gray-500">Ratio</p>
+        <p className="text-2xl font-bold text-green-600">{ratio}%</p>
+      </div>
+    </div>
+  </div>
+</div>
+
   );
 };
 

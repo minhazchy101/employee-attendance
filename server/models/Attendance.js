@@ -7,7 +7,7 @@ const attendanceSchema = new mongoose.Schema(
       required: true,
     },
     date: {
-      type: String, // e.g. "2025-10-28"
+      type: String,
       required: true,
     },
     status: {
@@ -16,7 +16,7 @@ const attendanceSchema = new mongoose.Schema(
       required: true,
     },
     method: {
-      type: String, // "manual" | "auto"
+      type: String, 
       required: true,
     },
   },

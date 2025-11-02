@@ -1,7 +1,9 @@
 import imagekit from "../config/imageKit.js";
 import User from "../models/User.js";
 
-// Register or check existing user
+/* ============================================
+   🟢 REGISTER USER (Public)
+============================================ */
 export const registerUser = async (req, res) => {
   try {
     const { fullName, email, jobTitle, phoneNumber, niNumber } = req.body;
@@ -11,20 +13,22 @@ export const registerUser = async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(200).json(existingUser);
+    if (existingUser) {
+      return res.status(400).json({ message: "User with this email already exists." });
+    }
 
-    const imageFile = req.file;
-    if (!imageFile)
-      return res.status(400).json({ message: "Profile image is required." });
-
-    const uploadResponse = await imagekit.upload({
-      file: imageFile.buffer,
-      fileName: imageFile.originalname,
-    });
-    const imageUrl = uploadResponse.url;
+    let imageUrl = "";
+    if (req.file) {
+      const uploadResponse = await imagekit.upload({
+        file: req.file.buffer,
+        fileName: req.file.originalname,
+      });
+      imageUrl = uploadResponse.url;
+    }
 
     const userCount = await User.countDocuments();
     const assignedRole = userCount === 0 ? "admin" : "pending request";
+    const assignedStatus = userCount === 0 ? "active" : "waiting for approval";
 
     const newUser = new User({
       fullName,
@@ -34,73 +38,92 @@ export const registerUser = async (req, res) => {
       phoneNumber,
       niNumber,
       role: assignedRole,
-      status: "pending",
+      status: assignedStatus,
       joinDate: new Date(),
     });
 
     await newUser.save();
 
-    // 🔹 Emit real-time event
-    const io = req.app.get("io");
-    io.emit("user-change", { type: "added", user: newUser });
+    // Emit websocket event
+    req.app.get("io").emit("user-change", { type: "added", user: newUser });
 
-    res.status(201).json({ message: "User registered successfully", user: newUser });
+    res.status(201).json({
+      success: true,
+      message:
+        userCount === 0
+          ? "Admin account created successfully."
+          : "Registration successful. Waiting for admin approval.",
+      user: newUser,
+    });
   } catch (error) {
     console.error("Register error:", error);
-    res.status(500).json({ message: "Server error", error });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Get all users (admin)
-export const getAllUsers = async (req, res) => {
-  try {
-    const users = await User.find().select("-__v");
-    res.status(200).json(users);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-// Update user role or job title (admin)
-export const updateUserRole = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { role, jobTitle } = req.body;
-
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { role, jobTitle },
-      { new: true }
-    ).select("-__v");
-
-    if (!updatedUser) return res.status(404).json({ message: "User not found" });
-
-    // 🔹 Emit real-time event
-    const io = req.app.get("io");
-    io.emit("user-change", { type: "updated", user: updatedUser });
-
-    res.status(200).json(updatedUser);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-// Get user profile by email
+/* ============================================
+   🟣 GET USER BY EMAIL (Protected)
+============================================ */
 export const getUserByEmail = async (req, res) => {
   try {
     const { email } = req.params;
     const user = await User.findOne({ email }).select("-__v");
-
     if (!user) return res.status(404).json({ message: "User not found" });
-
-    res.status(200).json(user);
+    res.status(200).json({ user });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
+/* ============================================
+   🟡 GET ALL USERS (Admin Only)
+============================================ */
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 }).select("-__v");
+    res.status(200).json({ users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
-// Delete user (admin only)
+/* ============================================
+   🔵 UPDATE USER ROLE / OFF-DAY (Admin Only)
+============================================ */
+export const updateUserRole = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { jobTitle, offDay } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.status !== "waiting for approval") {
+      return res.status(400).json({ message: "User is already active." });
+    }
+
+    user.role = "employee"; // ✅ always employee
+    user.jobTitle = jobTitle || user.jobTitle;
+    user.offDay = offDay || user.offDay;
+    user.status = "active";
+
+    await user.save();
+
+    req.app.get("io").emit("user-change", { type: "updated", user });
+
+    res.status(200).json({
+      success: true,
+      message: "User approved as employee successfully.",
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* ============================================
+   🔴 DELETE USER (Admin Only)
+============================================ */
 export const deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -108,64 +131,109 @@ export const deleteUser = async (req, res) => {
     const deletedUser = await User.findByIdAndDelete(userId);
     if (!deletedUser) return res.status(404).json({ message: "User not found" });
 
-    // 🔹 Emit real-time delete event
-    const io = req.app.get("io");
-    io.emit("user-change", { type: "deleted", userId });
+    req.app.get("io").emit("user-change", { type: "deleted", userId });
 
-    res.status(200).json({ message: "User deleted successfully", userId });
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully.",
+      userId,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
-
-
-
+/* ============================================
+   🟢 UPDATE PROFILE (Employee Only)
+============================================ */
 export const updateUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { fullName, jobTitle, phoneNumber, niNumber } = req.body;
+    const {
+      fullName,
+      jobTitle,
+      phoneNumber,
+      niNumber,
+      address,
+      passportNumber,
+      passportExpireDate,
+      jobStartDate,
+      weeklyHours,
+      hourlyRate,
+      annualWages,
+      offDay,
+      emergencyContacts,
+    } = req.body;
 
-    // 🔹 Step 1: Find existing user
-    const existingUser = await User.findById(userId);
-    if (!existingUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // 🔹 Step 2: Handle image upload if new file present
-    let imageUrl = existingUser.image;
+    
+    // Handle optional profile image
     if (req.file) {
       const uploadResponse = await imagekit.upload({
         file: req.file.buffer,
         fileName: req.file.originalname,
       });
-      imageUrl = uploadResponse.url;
+      user.image = uploadResponse.url;
     }
 
-    // 🔹 Step 3: Update user
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        fullName,
-        jobTitle,
-        phoneNumber,
-        niNumber,
-        image: imageUrl,
-      },
-      { new: true }
-    );
+    // Parse emergency contacts safely
+    let parsedContacts = user.emergencyContacts || [];
+    if (emergencyContacts) {
+      try {
+        parsedContacts = JSON.parse(emergencyContacts);
+      } catch {
+        parsedContacts = Array.isArray(emergencyContacts)
+          ? emergencyContacts
+          : [emergencyContacts];
+      }
+    }
 
-    // 🔹 Step 4: Emit event (use req.app.get("io") safely)
-    const io = req.app.get("io");
-    io.emit("user-change", { type: "updated", user: updatedUser });
+    Object.assign(user, {
+      fullName,
+      jobTitle,
+      phoneNumber,
+      niNumber,
+      address,
+      passportNumber,
+      passportExpireDate,
+      jobStartDate,
+      weeklyHours,
+      hourlyRate,
+      annualWages,
+      offDay,
+      emergencyContacts: parsedContacts,
+    });
+
+    // Check if profile is complete
+    const requiredFields = [
+      fullName,
+      jobTitle,
+      phoneNumber,
+      niNumber,
+      address,
+      passportNumber,
+      passportExpireDate,
+      jobStartDate,
+      weeklyHours,
+      hourlyRate,
+      annualWages,
+      parsedContacts.length,
+    ];
+    user.isProfileComplete = requiredFields.every(Boolean);
+
+    await user.save();
+
+    req.app.get("io").emit("user-change", { type: "updated", user });
 
     res.status(200).json({
-      message: "Profile updated successfully",
-      user: updatedUser,
+      success: true,
+      message: "Profile updated successfully.",
+      user,
     });
   } catch (error) {
     console.error("Update profile error:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
