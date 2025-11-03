@@ -145,21 +145,24 @@ console.log('profile : ', profile)
     setLoading(true);
 
     try {
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/users/update-profile/${profile._id}`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // ✅ Inside handleSubmit
+await axios.put(
+  `${import.meta.env.VITE_API_URL}/api/users/update-profile/${profile._id}`,
+  form,
+  { headers: { Authorization: `Bearer ${token}` } }
+);
 
-      Swal.fire({
-        icon: "success",
-        title: "Profile Updated Successfully!",
-        timer: 1200,
-        showConfirmButton: false,
-      });
+Swal.fire({
+  icon: "success",
+  title: "Profile Updated Successfully!",
+  timer: 1200,
+  showConfirmButton: false,
+});
 
-      fetchUserProfile(profile.email);
-      navigate("/dashboard") 
+// ✅ Re-fetch profile and redirect to profile page
+await fetchUserProfile(profile.email);
+navigate("/dashboard/profile");
+
     } catch (err) {
       console.error("Update failed:", err);
       Swal.fire({

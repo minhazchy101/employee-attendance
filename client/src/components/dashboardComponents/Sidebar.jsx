@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAppContext } from "../../context/AppContext";
-
 import {
   FaUser,
   FaUsers,
@@ -11,24 +10,31 @@ import {
   FaClock,
   FaPassport,
 } from "react-icons/fa";
-
 import LoadingSpinner from "../reusable/LoadingSpinner";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
-  const { profile, logout, pendingRequests, loading } = useAppContext();
-  const navigate = useNavigate();
- 
-
+  const { profile, logout, pendingRequests, loading, location, navigate } = useAppContext();
 
   const isAdmin = profile?.role === "admin";
-  const hasCompleteProfile = profile?.isProfileComplete; // flag for complete profile
+  const isPending = profile?.role === "pending request";
+  const hasCompleteProfile = profile?.isProfileComplete;
 
-  // Protect Dashboard access
+console.log('pendingRequests.length : ', pendingRequests.length)
+
+  // ✅ Redirect logic for pending users
   useEffect(() => {
-    if (!loading && !hasCompleteProfile) {
-      navigate("/dashboard/complete-profile");
+    if (!loading && isPending) {
+      const path = location.pathname;
+
+      if (!hasCompleteProfile && path !== "/dashboard/complete-profile") {
+        // Force pending (incomplete) users to complete their profile first
+        navigate("/dashboard/complete-profile", { replace: true });
+      } else if (hasCompleteProfile && path !== "/dashboard/profile") {
+        // After completing profile, show only the profile page
+        navigate("/dashboard/profile", { replace: true });
+      }
     }
-  }, [loading, hasCompleteProfile]);
+  }, [loading, isPending, hasCompleteProfile, location.pathname, navigate]);
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
@@ -36,18 +42,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         ? "bg-primary text-white shadow-md"
         : "text-gray-700 hover:bg-primary/10 hover:text-primary"
     }`;
-console.log('pendingRequests : ', pendingRequests.length)
-  
-  
-if (loading) {
-  return (
-    <div className="flex items-center justify-center h-full w-64 bg-white border-r shadow-md">
-      <LoadingSpinner size="lg" />
-    </div>
-  );
-}
-  
-console.log(profile)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full w-64 bg-white border-r shadow-md">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
   return (
     <>
       {sidebarOpen && (
@@ -71,45 +74,71 @@ console.log(profile)
 
           {/* Navigation */}
           <nav className="p-4 flex flex-col gap-2">
-            {/* Always show complete profile */}
-            {!hasCompleteProfile &&  
-            
-            <NavLink to="/dashboard/complete-profile" end className={linkClass}>
-              <FaPassport /> Complete Profile
-            </NavLink>
-            }
-
-            {/* Only accessible if profile is complete */}
-            {hasCompleteProfile && (
+            {/* 🟡 Pending User */}
+            {isPending && (
               <>
-                <NavLink to="/dashboard" end className={linkClass}>
+                {!hasCompleteProfile ? (
+                  <NavLink to="/dashboard/complete-profile" className={linkClass}>
+                    <FaPassport /> Complete Profile
+                  </NavLink>
+                ) : (
+                  <NavLink to="/dashboard/profile" className={linkClass}>
+                    <FaUser /> Profile
+                  </NavLink>
+                )}
+              </>
+            )}
+
+            {/* 🟢 Employee */}
+            {profile.role === "employee" && hasCompleteProfile && (
+              <>
+                <NavLink to="/dashboard/employee-dashboard" className={linkClass}>
                   <FaHome /> Dashboard
                 </NavLink>
-
                 <NavLink to="/dashboard/attendance-history" className={linkClass}>
                   <FaClock /> Attendance History
                 </NavLink>
+               <NavLink to="/dashboard/leave-apply" className={linkClass}>
+  <FaClipboardList /> Leave Apply
+</NavLink>
+                <NavLink to="/dashboard/profile" className={linkClass}>
+                  <FaUser /> Profile
+                </NavLink>
+              </>
+            )}
+
+            {/* 🔵 Admin */}
+            {isAdmin && hasCompleteProfile && (
+              <>
+                <NavLink to="/dashboard/admin-dashboard" className={linkClass}>
+                  <FaHome /> Dashboard
+                </NavLink>
+
+                <NavLink to="/dashboard/all" className={linkClass}>
+                  <FaUsers /> All Employees
+                </NavLink>
+
+                <NavLink to="/dashboard/employee-requests" className={linkClass}>
+                  <FaClipboardList /> Employee Requests
+                  {pendingRequests.length > 0 && (
+                    <span className="ml-auto bg-secondary text-white rounded-full px-2 py-0.5 text-xs font-semibold">
+                      {pendingRequests.length}
+                    </span>
+                  )}
+                </NavLink>
+
+                <NavLink to="/dashboard/leave-requests" className={linkClass}>
+  <FaClipboardList /> Leave Requests
+  {pendingRequests.length > 0 && (
+    <span className="ml-auto bg-secondary text-white rounded-full px-2 py-0.5 text-xs font-semibold">
+      {pendingRequests.length}
+    </span>
+  )}
+</NavLink>
 
                 <NavLink to="/dashboard/profile" className={linkClass}>
                   <FaUser /> Profile
                 </NavLink>
-
-                {isAdmin && (
-                  <>
-                    <NavLink to="/dashboard/all" className={linkClass}>
-                      <FaUsers /> All Users
-                    </NavLink>
-
-                    <NavLink to="/dashboard/employee-requests" className={linkClass}>
-                      <FaClipboardList /> Employee Requests
-                      { pendingRequests.length > 0 && (
-                        <span className="ml-auto bg-secondary text-white rounded-full px-2 py-0.5 text-xs font-semibold">
-                          { pendingRequests.length}
-                        </span>
-                      )}
-                    </NavLink>
-                  </>
-                )}
               </>
             )}
           </nav>

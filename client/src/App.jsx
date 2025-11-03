@@ -8,8 +8,6 @@ import { useAppContext } from "./context/AppContext";
 import ProtectedRoute from "./routes/PrivateRoute";
 
 // Dashboard Pages
-import DashboardHome from "./pages/Dashboard/DashboardHome";
-
 import CompleteProfile from "./pages/Dashboard/CompleteProfile";
 import AttendanceHistory from "./pages/Dashboard/AttendanceHistory";
 import Profile from "./pages/Dashboard/roles/Profile";
@@ -17,11 +15,12 @@ import Profile from "./pages/Dashboard/roles/Profile";
 // Admin Pages
 import AllEmployees from "./pages/Dashboard/admin/AllEmployees";
 import EmployeeRequests from "./pages/Dashboard/admin/EmployeeRequests";
-// import AdminDashboard from "./pages/Dashboard/admin/AdminDashboard";
-
+import AdminDashboard from "./pages/Dashboard/admin/AdminDashboard";
 
 // Employee Pages
-// import EmployeeDashboard from "./pages/Dashboard/employee/EmployeeDashboard";
+import EmployeeDashboard from "./pages/Dashboard/employe/EmployeeDashboard";
+import LeaveRequests from "./pages/Dashboard/admin/LeaveRequests";
+import LeaveApply from "./pages/Dashboard/employe/LeaveApply";
 
 const App = () => {
   const { showLogin } = useAppContext();
@@ -34,33 +33,33 @@ const App = () => {
       {showLogin && <AuthModal />}
 
       <Routes>
-        {/* Public Routes */}
+        {/* Public */}
         <Route path="/" element={<Home />} />
 
-        {/* Protected Dashboard Layout */}
+        {/* Protected */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
-            {/* Default Dashboard Home */}
-            <Route index element={<DashboardHome />} />
-
-            {/* Employee/All Roles */}
+            
+            {/* Role Dashboards */}
+            <Route path="employee-dashboard" element={<EmployeeDashboard />} />
+            <Route path="admin-dashboard" element={<AdminDashboard />} />
+            
+            {/* Common Pages */}
             <Route path="complete-profile" element={<CompleteProfile />} />
-            <Route path="attendance-history" element={<AttendanceHistory />} />
             <Route path="profile" element={<Profile />} />
 
-            {/* Admin Routes */}
+            {/* Employee Pages */}
+            <Route path="attendance-history" element={<AttendanceHistory />} />
+            <Route path="leave-apply" element={<LeaveApply />} />
+
+            {/* Admin Pages */}
             <Route path="all" element={<AllEmployees />} />
             <Route path="employee-requests" element={<EmployeeRequests />} />
-
-            {/* Optional: Separate Admin Dashboard */}
-            {/* <Route path="admin-dashboard" element={<AdminDashboard />} /> */}
-
-            {/* Optional: Employee Dashboard */}
-            {/* <Route path="employee-dashboard" element={<EmployeeDashboard />} /> */}
+            <Route path="leave-requests" element={<LeaveRequests />} />
           </Route>
         </Route>
 
-        {/* 404 Fallback */}
+        {/* 404 */}
         <Route path="*" element={<div className="min-h-screen">Page Not Found</div>} />
       </Routes>
 

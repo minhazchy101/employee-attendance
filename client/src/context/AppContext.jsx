@@ -2,12 +2,15 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, onIdTokenChanged, signOut } from "firebase/auth";
 import axios from "axios";
 import { auth } from "../firebase/firebase.config";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import LoadingSpinner from "../components/reusable/LoadingSpinner";
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const navigate = useNavigate();
+ const location = useLocation();
+
 
   const [showLogin, setShowLogin] = useState(false);
   const [user, setUser] = useState(null); // Firebase Auth user
@@ -114,15 +117,19 @@ useEffect(() => {
     fetchUserProfile,
     axios,
     pendingRequests, 
-    setPendingRequests
+    setPendingRequests,
+    location
 
   };
 
   return (
-    <AppContext.Provider value={value}>
-      {!loading && children}
-    </AppContext.Provider>
-  );
+  <AppContext.Provider value={value}>
+    {loading ?<div className="flex justify-center min-h-screen items-center">
+    <LoadingSpinner  size="lg" /> 
+    </div> : children}
+  </AppContext.Provider>
+);
+
 };
 
 export const useAppContext = () => useContext(AppContext);

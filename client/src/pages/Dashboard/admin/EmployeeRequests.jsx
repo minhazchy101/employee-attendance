@@ -41,11 +41,12 @@ const EmployeeRequests = () => {
     }
   };
 
-   setPendingRequests(requests);
-
   useEffect(() => {
     if (token) fetchRequests();
   }, [token]);
+
+  setPendingRequests(requests);
+
 
   // Live sync (via socket)
   usePolish({

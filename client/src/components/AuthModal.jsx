@@ -130,6 +130,8 @@ const AuthModal = () => {
             text: "Your account is still pending admin approval. Please wait for confirmation.",
             confirmButtonColor: "#4f46e5",
           });
+          setShowLogin(false);
+          navigate("/dashboard/profile");
           return;
         }
 
@@ -140,6 +142,7 @@ const AuthModal = () => {
             text: "Please complete your profile information before accessing the dashboard.",
             confirmButtonColor: "#facc15",
           });
+          setShowLogin(false);
           navigate("/dashboard/complete-profile");
           return;
         }
@@ -251,7 +254,7 @@ const AuthModal = () => {
   return (
     <div
       onClick={() => setShowLogin(false)}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 mt-10"
     >
       <form
         onClick={(e) => e.stopPropagation()}

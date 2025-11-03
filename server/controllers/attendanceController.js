@@ -2,48 +2,97 @@ import Attendance from "../models/Attendance.js";
 import User from "../models/User.js";
 
 // POST /api/attendance/mark
-
 export const markAttendance = async (req, res) => {
   try {
-    const userEmail = req.user.email; // ✅ from token middleware
-    const today = new Date().toISOString().split("T")[0];
-   const { status, method } = req.body;
-
-    // ✅ Check existing attendance for today
-    const existing = await Attendance.findOne({ userEmail, date: today });
-    if (existing) {
-      return res.status(400).json({ message: "Already marked today." });
-    }
-
-    // ✅ Create new attendance record
-    const attendance = new Attendance({
-      userEmail,
-      status , // ✅ must match your enum
-      method,
-      date: today,
-    });
-    await attendance.save();
-
-    // ✅ Emit socket event correctly
-    const io = req.app.get("io");
-    io.emit("attendance-change", { userEmail, status: "Attend" });
-
-    res.status(201).json({ message: "Attendance marked successfully" });
-  } catch (error) {
-    console.error("Error marking attendance:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-// GET /api/attendance/my
-export const getMyAttendance = async (req, res) => {
-  try {
     const userEmail = req.user.email;
-    const records = await Attendance.find({ userEmail }).sort({ date: -1 });
-    res.json(records);
+    const today = new Date().toISOString().split("T")[0];
+
+    const existing = await Attendance.findOne({ userEmail, date: today });
+    if (existing) return res.status(400).json({ message: "Already marked today." });
+
+    const attendance = await Attendance.create({
+      userEmail,
+      date: today,
+      status: "pending", // pending admin verification
+      method: "manual",
+    });
+
+    const io = req.app.get("io");
+    io.emit("attendance-change", { userEmail, status: "pending" });
+
+    res.status(201).json({ message: "Attendance marked (pending verification)." });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Verify Attendance (Admin)
+export const verifyAttendance = async (req, res) => {
+  try {
+    const { attendanceId, status } = req.body; // attended / unauthorized leave
+    const record = await Attendance.findById(attendanceId);
+    if (!record) return res.status(404).json({ message: "Attendance not found" });
+
+    record.status = status;
+    await record.save();
+
+    const io = req.app.get("io");
+    io.emit("attendance-change", { userEmail: record.userEmail, status });
+
+    res.json({ message: "Attendance updated" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /api/attendance/my
+export const getMyAttendance = async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 30;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+    const records = await Attendance.find({
+      userEmail,
+      date: { $gte: monthStart, $lte: monthEnd },
+    })
+      .sort({ date: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const monthlyRecords = await Attendance.find({
+      userEmail,
+      date: { $gte: monthStart, $lte: monthEnd },
+    });
+
+  const presentDays = monthlyRecords.filter(r => r.status === "attended").length;
+const authorizedLeave = monthlyRecords.filter(r => r.status === "authorized leave").length;
+const offDays = monthlyRecords.filter(r => r.status === "off day").length;
+const unauthorized = monthlyRecords.filter(r => r.status === "unauthorized leave").length;
+const pending = monthlyRecords.filter(r => r.status === "pending").length;
+
+const totalWorkDays = presentDays + authorizedLeave + unauthorized;
+const attendanceRatio = totalWorkDays > 0
+  ? Math.round((presentDays / totalWorkDays) * 100)
+  : 0;
+
+res.json({
+  records,
+  monthlySummary: { presentDays, authorizedLeave, offDays, unauthorized, pending, attendanceRatio },
+  page,
+  limit,
+  total: monthlyRecords.length,
+});
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 
 // GET /api/attendance/today
 export const getTodayStatus = async (req, res) => {

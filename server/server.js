@@ -7,6 +7,12 @@ import jwtRoute from "./routes/jwt.js";
 import http from "http";
 import { Server } from "socket.io";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
+import { scheduleDailyAttendanceCheck } from "./cron/attendanceCron.js";
+import "./cron/autoMarkAbsence.js";
+import leaveRoutes from "./routes/leaveRoutes.js";
+import "./cron/resetHolidays.js";
+
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,6 +28,7 @@ app.get("/", (req, res) => {
 app.use("/", jwtRoute);
 app.use("/api/users", UsersRoute);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/leave", leaveRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
@@ -35,6 +42,7 @@ const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
+scheduleDailyAttendanceCheck(io);
 // Make io accessible to routes/controllers
 app.set("io", io);
 

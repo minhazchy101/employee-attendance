@@ -48,8 +48,9 @@ const AdminDashboard = () => {
 
   const cards = [
     { label: "Total Employees", value: stats.employees, color: "bg-indigo-100 text-indigo-700" },
+    { label: "Attend Employees", value: stats.employees, color: "bg-indigo-100 text-indigo-700" },
     { label: "Pending Requests", value: stats.pending, color: "bg-yellow-100 text-yellow-700" },
-    { label: "Total Admins", value: stats.admins, color: "bg-green-100 text-green-700" },
+    { label: "Pending Requests", value: stats.admins, color: "bg-green-100 text-green-700" },
   ];
 
   return (

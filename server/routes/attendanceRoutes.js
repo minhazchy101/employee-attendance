@@ -3,19 +3,20 @@ import {
   markAttendance,
   getMyAttendance,
   getTodayStatus,
-  getAllAttendance
+  getAllAttendance,
+  verifyAttendance,
 } from "../controllers/attendanceController.js";
-
 import { verifyAdmin, verifyEmployee, verifyToken } from "../middleware/auth.js";
 
 const attendanceRoutes = express.Router();
 
 // Employee
-attendanceRoutes.post("/mark", verifyToken, markAttendance);    // mark either Attend or Absence
-attendanceRoutes.get("/my", verifyToken, getMyAttendance);      // history for logged-in user
-attendanceRoutes.get("/today", verifyToken, getTodayStatus);       // today's status (for profile/dashboard)
+attendanceRoutes.post("/mark", verifyEmployee, markAttendance);
+attendanceRoutes.get("/my", verifyEmployee, getMyAttendance);
+attendanceRoutes.get("/today", verifyToken, getTodayStatus);
 
 // Admin
-attendanceRoutes.get("/all", verifyAdmin, getAllAttendance);       // all attendance (table)
+attendanceRoutes.get("/all", verifyAdmin, getAllAttendance);
+attendanceRoutes.post("/verify", verifyAdmin, verifyAttendance);
 
 export default attendanceRoutes;
