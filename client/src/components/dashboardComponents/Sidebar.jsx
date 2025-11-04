@@ -13,7 +13,7 @@ import {
 import LoadingSpinner from "../reusable/LoadingSpinner";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
-  const { profile, logout, pendingUsers, loading, location, navigate } = useAppContext();
+  const { profile, logout,  loading, location, navigate } = useAppContext();
 
   const isAdmin = profile?.role === "admin";
   const isPending = profile?.role === "pending request";
@@ -123,11 +123,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
                 <NavLink to="/dashboard/employee-requests" className={linkClass}>
                   <FaClipboardList /> Employee Requests
-                  {pendingUsers.length > 0 && (
+                  {/* {pendingUsers.length > 0 && (
                     <span className="ml-auto bg-secondary text-white rounded-full px-2 py-0.5 text-xs font-semibold">
                       {pendingUsers.length}
                     </span>
-                  )}
+                  )} */}
                 </NavLink>
 
                 <NavLink to="/dashboard/leave-requests" className={linkClass}>
