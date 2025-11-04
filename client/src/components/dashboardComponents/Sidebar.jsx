@@ -13,13 +13,12 @@ import {
 import LoadingSpinner from "../reusable/LoadingSpinner";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
-  const { profile, logout, pendingRequests, loading, location, navigate } = useAppContext();
+  const { profile, logout, pendingUsers, loading, location, navigate } = useAppContext();
 
   const isAdmin = profile?.role === "admin";
   const isPending = profile?.role === "pending request";
   const hasCompleteProfile = profile?.isProfileComplete;
 
-console.log('pendingRequests.length : ', pendingRequests.length)
 
   // ✅ Redirect logic for pending users
   useEffect(() => {
@@ -114,26 +113,30 @@ console.log('pendingRequests.length : ', pendingRequests.length)
                   <FaHome /> Dashboard
                 </NavLink>
 
+                <NavLink to="/dashboard/admin-verify-attendance" className={linkClass}>
+                  <FaUsers /> Verify Attendance
+                </NavLink>
+
                 <NavLink to="/dashboard/all" className={linkClass}>
                   <FaUsers /> All Employees
                 </NavLink>
 
                 <NavLink to="/dashboard/employee-requests" className={linkClass}>
                   <FaClipboardList /> Employee Requests
-                  {pendingRequests.length > 0 && (
+                  {pendingUsers.length > 0 && (
                     <span className="ml-auto bg-secondary text-white rounded-full px-2 py-0.5 text-xs font-semibold">
-                      {pendingRequests.length}
+                      {pendingUsers.length}
                     </span>
                   )}
                 </NavLink>
 
                 <NavLink to="/dashboard/leave-requests" className={linkClass}>
   <FaClipboardList /> Leave Requests
-  {pendingRequests.length > 0 && (
+  {/* {pendingRequests.length > 0 && (
     <span className="ml-auto bg-secondary text-white rounded-full px-2 py-0.5 text-xs font-semibold">
       {pendingRequests.length}
     </span>
-  )}
+  )} */}
 </NavLink>
 
                 <NavLink to="/dashboard/profile" className={linkClass}>

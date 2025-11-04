@@ -1,13 +1,13 @@
 import React from "react";
 import { useAppContext } from "../context/AppContext";
-import Attendance from "./Attendance";
+// import Attendance from "./Attendance";
 
 const Hero = () => {
-  const { setShowLogin, profile, loading, logout, navigate, user } = useAppContext();
+  const { setShowLogin, loading, logout, navigate, user } = useAppContext();
 
   const handleGetStarted = () => {
     if (loading) return;
-    if (profile) {
+    if (user) {
       navigate("/dashboard");
     } else {
       setShowLogin(true);
@@ -48,9 +48,9 @@ const Hero = () => {
       </div>
 
       {/* --- Demo / Preview Section --- */}
-      <div className="mt-16">
+      {/* <div className="mt-16">
         <Attendance />
-      </div>
+      </div> */}
     </section>
   );
 };

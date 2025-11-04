@@ -81,7 +81,7 @@ export const getUserByEmail = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().sort({ createdAt: -1 }).select("-__v");
-    res.status(200).json({ users });
+    res.status(200).json( users );
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

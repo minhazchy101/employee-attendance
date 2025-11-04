@@ -11,6 +11,7 @@ import { scheduleDailyAttendanceCheck } from "./cron/attendanceCron.js";
 import "./cron/autoMarkAbsence.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
 import "./cron/resetHolidays.js";
+import holidayRouter from "./routes/holidayRoutes.js";
 
 
 
@@ -29,6 +30,7 @@ app.use("/", jwtRoute);
 app.use("/api/users", UsersRoute);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/leave", leaveRoutes);
+app.use("/api/holidays", holidayRouter);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

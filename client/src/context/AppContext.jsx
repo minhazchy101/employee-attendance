@@ -17,7 +17,7 @@ export const AppProvider = ({ children }) => {
   const [profile, setProfile] = useState(null); // App-specific user data
   const [token, setToken] = useState(null); // Firebase ID token
   const [loading, setLoading] = useState(true);
-   const [pendingRequests, setPendingRequests] = useState([]);
+   const [pendingUsers, setPendingUsers] = useState([]);
 
   // 🔹 Initialize and manage Firebase Auth state
   useEffect(() => {
@@ -116,8 +116,8 @@ useEffect(() => {
     logout,
     fetchUserProfile,
     axios,
-    pendingRequests, 
-    setPendingRequests,
+    pendingUsers, 
+    setPendingUsers,
     location
 
   };

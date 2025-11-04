@@ -18,9 +18,11 @@ import EmployeeRequests from "./pages/Dashboard/admin/EmployeeRequests";
 import AdminDashboard from "./pages/Dashboard/admin/AdminDashboard";
 
 // Employee Pages
-import EmployeeDashboard from "./pages/Dashboard/employe/EmployeeDashboard";
+import EmployeeDashboard from "./pages/Dashboard/employee/EmployeeDashboard";
 import LeaveRequests from "./pages/Dashboard/admin/LeaveRequests";
-import LeaveApply from "./pages/Dashboard/employe/LeaveApply";
+import LeaveApply from "./pages/Dashboard/employee/LeaveApply";
+import RoleRoute from "./pages/Dashboard/RoleRoute";
+import AdminVerifyAttendance from "./pages/Dashboard/admin/AdminVerifyAttendance";
 
 const App = () => {
   const { showLogin } = useAppContext();
@@ -32,36 +34,41 @@ const App = () => {
       {!isDashboard && <Navbar />}
       {showLogin && <AuthModal />}
 
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<Home />} />
 
-        {/* Protected */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            
-            {/* Role Dashboards */}
-            <Route path="employee-dashboard" element={<EmployeeDashboard />} />
-            <Route path="admin-dashboard" element={<AdminDashboard />} />
-            
-            {/* Common Pages */}
-            <Route path="complete-profile" element={<CompleteProfile />} />
-            <Route path="profile" element={<Profile />} />
+<Routes>
+  {/* Public */}
+  <Route path="/" element={<Home />} />
 
-            {/* Employee Pages */}
-            <Route path="attendance-history" element={<AttendanceHistory />} />
-            <Route path="leave-apply" element={<LeaveApply />} />
+  {/* Protected */}
+  <Route element={<ProtectedRoute />}>
+    <Route path="/dashboard" element={<DashboardLayout />}>
+      
+      <Route path="complete-profile" element={<CompleteProfile />} />
+      {/* Common Pages */}
+      <Route path="profile" element={<Profile />} />
 
-            {/* Admin Pages */}
-            <Route path="all" element={<AllEmployees />} />
-            <Route path="employee-requests" element={<EmployeeRequests />} />
-            <Route path="leave-requests" element={<LeaveRequests />} />
-          </Route>
-        </Route>
+      {/* Employee-only */}
+      <Route element={<RoleRoute allowedRoles={["employee"]} />}>
+        <Route path="employee-dashboard" element={<EmployeeDashboard />} />
+        <Route path="attendance-history" element={<AttendanceHistory />} />
+        <Route path="leave-apply" element={<LeaveApply />} />
+      </Route>
 
-        {/* 404 */}
-        <Route path="*" element={<div className="min-h-screen">Page Not Found</div>} />
-      </Routes>
+      {/* Admin-only */}
+      <Route element={<RoleRoute allowedRoles={["admin"]} />}>
+        <Route path="admin-dashboard" element={<AdminDashboard />} />
+        <Route path="admin-verify-attendance" element={<AdminVerifyAttendance />} />
+        <Route path="all" element={<AllEmployees />} />
+        <Route path="employee-requests" element={<EmployeeRequests />} />
+        <Route path="leave-requests" element={<LeaveRequests />} />
+      </Route>
+    </Route>
+  </Route>
+
+  {/* 404 */}
+  <Route path="*" element={<div className="min-h-screen">Page Not Found</div>} />
+</Routes>
+
 
       {!isDashboard && <Footer />}
     </>

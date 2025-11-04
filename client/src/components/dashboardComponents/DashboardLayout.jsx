@@ -7,7 +7,7 @@ import { Outlet } from "react-router-dom";
 const DashboardLayout = () => {
   const { profile, loading, navigate, location } = useAppContext();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
+console.log(profile)
   useEffect(() => {
     if (!loading && profile) {
       const currentPath = location.pathname;

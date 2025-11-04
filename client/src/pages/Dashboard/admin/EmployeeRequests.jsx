@@ -7,11 +7,11 @@ import { usePolish } from "../../../hooks/usePolish";
 import PageHeader from "../../../components/reusable/PageHeader";
 
 const EmployeeRequests = () => {
-  const { token, setPendingRequests } = useAppContext();
+  const { token, setPendingUsers } = useAppContext();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOffDays, setSelectedOffDays] = useState({});
-
+console.log(setPendingUsers)
   const offDays = [
     "Monday",
     "Tuesday",
@@ -29,10 +29,11 @@ const EmployeeRequests = () => {
         `${import.meta.env.VITE_API_URL}/api/users/all`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const pending = data?.users.filter(
+      const pending = data?.filter(
         (u) => u.role === "pending request" && u.isProfileComplete
       );
       setRequests(pending);
+      console.log(pending)
      
     } catch (error) {
       console.error("Failed to fetch requests:", error);
@@ -45,7 +46,7 @@ const EmployeeRequests = () => {
     if (token) fetchRequests();
   }, [token]);
 
-  setPendingRequests(requests);
+  // setPendingUsers(requests);
 
 
   // Live sync (via socket)
@@ -160,7 +161,7 @@ const EmployeeRequests = () => {
       });
     }
   };
-
+console.log('requests : ', requests)
   if (loading)
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-500">
