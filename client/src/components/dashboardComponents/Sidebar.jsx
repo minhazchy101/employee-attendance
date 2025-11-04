@@ -116,6 +116,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 <NavLink to="/dashboard/admin-verify-attendance" className={linkClass}>
                   <FaUsers /> Verify Attendance
                 </NavLink>
+                <NavLink to="/dashboard/admin-attendance-history" className={linkClass}>
+                  <FaUsers />Attendance History
+                </NavLink>
 
                 <NavLink to="/dashboard/all" className={linkClass}>
                   <FaUsers /> All Employees

@@ -214,7 +214,7 @@ export const getTodayStatus = async (req, res) => {
 };
 
 /**
- * 👨‍💼 Admin: Get all attendance records
+ *  Admin: Get all attendance records
  */
 export const getAllAttendance = async (req, res) => {
   try {
@@ -224,3 +224,86 @@ export const getAllAttendance = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+/**
+ *  Admin: Get today's attendance or full history with pagination + filters
+ * Query: ?date=YYYY-MM-DD or ?month=YYYY-MM
+ */
+export const getAttendanceRecords = async (req, res) => {
+  try {
+    const { date, startDate, endDate, page = 1, limit = 20 } = req.query;
+    const query = {};
+
+    // 🔹 Filter by date or range
+    if (date) query.date = date;
+    else if (startDate && endDate) query.date = { $gte: startDate, $lte: endDate };
+
+    const skip = (page - 1) * limit;
+
+    const records = await Attendance.find(query)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Attendance.countDocuments(query);
+
+    res.json({ records, total, page: Number(page), limit: Number(limit) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ *  Both Roles: Search attendance by date (single or range)
+ */
+export const searchAttendance = async (req, res) => {
+  try {
+    const { startDate, endDate, date } = req.query;
+    const userEmail = req.user.email;
+    const user = await User.findOne({ email: userEmail });
+
+    let query = {};
+
+    if (user.role === "employee") query.userEmail = userEmail; // restrict employee
+    if (date) query.date = date;
+    else if (startDate && endDate) query.date = { $gte: startDate, $lte: endDate };
+
+    const records = await Attendance.find(query).sort({ date: -1 });
+    res.json(records);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * Admin: Manually edit attendance status
+ */
+export const editAttendance = async (req, res) => {
+  try {
+    const { attendanceId, status } = req.body;
+
+    if (!attendanceId || !status) {
+      return res.status(400).json({ message: "attendanceId and status required" });
+    }
+
+    const validStatuses = ["attended", "unauthorized leave", "authorized leave", "off day", "pending"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const record = await Attendance.findById(attendanceId);
+    if (!record) return res.status(404).json({ message: "Attendance not found" });
+
+    record.status = status;
+    await record.save();
+
+    // Emit real-time update
+    const io = req.app.get("io");
+    io.emit("attendance-change", { userEmail: record.userEmail, status });
+
+    res.json({ message: "Attendance status updated", record });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+

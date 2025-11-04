@@ -23,6 +23,8 @@ import LeaveRequests from "./pages/Dashboard/admin/LeaveRequests";
 import LeaveApply from "./pages/Dashboard/employee/LeaveApply";
 import RoleRoute from "./pages/Dashboard/RoleRoute";
 import AdminVerifyAttendance from "./pages/Dashboard/admin/AdminVerifyAttendance";
+import EmployeeAttendanceCalendar from "./pages/Dashboard/employee/EmployeeAttendanceCalendar";
+import AdminAttendanceDashboard from "./pages/Dashboard/admin/AdminAttendanceDashboard";
 
 const App = () => {
   const { showLogin } = useAppContext();
@@ -50,7 +52,7 @@ const App = () => {
       {/* Employee-only */}
       <Route element={<RoleRoute allowedRoles={["employee"]} />}>
         <Route path="employee-dashboard" element={<EmployeeDashboard />} />
-        <Route path="attendance-history" element={<AttendanceHistory />} />
+        <Route path="attendance-history" element={<EmployeeAttendanceCalendar />} />
         <Route path="leave-apply" element={<LeaveApply />} />
       </Route>
 
@@ -58,6 +60,7 @@ const App = () => {
       <Route element={<RoleRoute allowedRoles={["admin"]} />}>
         <Route path="admin-dashboard" element={<AdminDashboard />} />
         <Route path="admin-verify-attendance" element={<AdminVerifyAttendance />} />
+        <Route path="admin-attendance-history" element={<AdminAttendanceDashboard />} />
         <Route path="all" element={<AllEmployees />} />
         <Route path="employee-requests" element={<EmployeeRequests />} />
         <Route path="leave-requests" element={<LeaveRequests />} />
