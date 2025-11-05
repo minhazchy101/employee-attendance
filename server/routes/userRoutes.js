@@ -21,7 +21,7 @@ UsersRoute.post("/register", upload.single("image"), registerUser);
    🔒 PROTECTED ROUTES
 ================================= */
 UsersRoute.get("/all", verifyAdmin, getAllUsers);
-UsersRoute.get("/profile/:email", verifyToken, getUserByEmail);
+UsersRoute.get("/profile/:email", verifyToken,verifyAdmin, getUserByEmail);
 UsersRoute.put(
   "/update-profile/:userId",
   upload.single("image"),

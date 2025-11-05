@@ -5,6 +5,7 @@ import { useAppContext } from "../../../context/AppContext";
 import { usePolish } from "../../../hooks/usePolish";
 import PageHeader from "../../../components/reusable/PageHeader";
 import LoadingSpinner from "../../../components/reusable/LoadingSpinner";
+import { useNavigate } from "react-router-dom";
 
 const AllEmployees = () => {
   const { token } = useAppContext();
@@ -13,14 +14,14 @@ const AllEmployees = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const navigate = useNavigate();
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const { data } = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/users/all`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setUsers(data);
       setFiltered(data);
@@ -40,10 +41,7 @@ const AllEmployees = () => {
   });
 
   useEffect(() => {
-    if (!search) {
-      setFiltered(users);
-      return;
-    }
+    if (!search) return setFiltered(users);
     const q = search.toLowerCase();
     setFiltered(
       users.filter(
@@ -75,6 +73,7 @@ const AllEmployees = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       Swal.fire("Updated!", `User role changed to ${newRole}.`, "success");
+      fetchUsers();
     } catch (err) {
       Swal.fire("Error", "Failed to update role", "error");
       console.error(err);
@@ -99,6 +98,7 @@ const AllEmployees = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       Swal.fire("Deleted!", "User has been removed.", "success");
+      fetchUsers();
     } catch (err) {
       Swal.fire("Error", "Failed to delete user", "error");
       console.error(err);
@@ -109,7 +109,7 @@ const AllEmployees = () => {
     <div className="p-6">
       <PageHeader title="All Employees" subtitle="Manage and view all users" />
 
-      {/* 🔍 Search Section */}
+      {/* Search Section */}
       <div className="flex flex-col md:flex-row gap-3 mt-6 mb-4">
         <input
           type="text"
@@ -157,10 +157,16 @@ const AllEmployees = () => {
                         <img
                           src={u.image}
                           alt={u.fullName}
-                          className="w-10 h-10 rounded-full object-cover border border-primary/20"
+                          className="w-10 h-10 rounded-full object-cover border border-primary/20 cursor-pointer"
+                          onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
                         />
                       </td>
-                      <td className="px-4 py-3 font-medium">{u.fullName}</td>
+                      <td
+                        className="px-4 py-3 font-medium cursor-pointer hover:underline"
+                        onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                      >
+                        {u.fullName}
+                      </td>
                       <td className="px-4 py-3">{u.email}</td>
                       <td className="px-4 py-3">{u.jobTitle || "-"}</td>
                       <td className="px-4 py-3">{u.niNumber}</td>
@@ -175,21 +181,25 @@ const AllEmployees = () => {
                           {u.role}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleRoleChange(u._id, u.role)}
-                            className="px-3 py-1 rounded-md bg-secondary text-white hover:bg-secondary/80"
-                          >
-                            Toggle
-                          </button>
-                          <button
-                            onClick={() => handleDelete(u._id)}
-                            className="px-3 py-1 rounded-md bg-red-500 text-white hover:bg-red-600"
-                          >
-                            Remove
-                          </button>
-                        </div>
+                      <td className="px-4 py-3 flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleRoleChange(u._id, u.role)}
+                          className="px-3 py-1 rounded-md bg-secondary text-white hover:bg-secondary/80"
+                        >
+                          Toggle
+                        </button>
+                        <button
+                          onClick={() => handleDelete(u._id)}
+                          className="px-3 py-1 rounded-md bg-red-500 text-white hover:bg-red-600"
+                        >
+                          Remove
+                        </button>
+                        <button
+                          onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                          className="px-3 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-600"
+                        >
+                          View
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -208,10 +218,16 @@ const AllEmployees = () => {
                     <img
                       src={u.image}
                       alt={u.fullName}
-                      className="w-12 h-12 rounded-full object-cover border border-primary/30"
+                      className="w-12 h-12 rounded-full object-cover border border-primary/30 cursor-pointer"
+                      onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
                     />
                     <div>
-                      <p className="font-semibold text-gray-800">{u.fullName}</p>
+                      <p
+                        className="font-semibold text-gray-800 cursor-pointer hover:underline"
+                        onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                      >
+                        {u.fullName}
+                      </p>
                       <p className="text-sm text-gray-500">{u.email}</p>
                     </div>
                   </div>
@@ -245,6 +261,12 @@ const AllEmployees = () => {
                       className="flex-1 px-3 py-2 rounded-md bg-red-500 text-white hover:bg-red-600"
                     >
                       Remove
+                    </button>
+                    <button
+                      onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                      className="flex-1 px-3 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600"
+                    >
+                      View
                     </button>
                   </div>
                 </div>

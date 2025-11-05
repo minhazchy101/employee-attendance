@@ -25,6 +25,7 @@ import RoleRoute from "./pages/Dashboard/RoleRoute";
 import AdminVerifyAttendance from "./pages/Dashboard/admin/AdminVerifyAttendance";
 import EmployeeAttendanceCalendar from "./pages/Dashboard/employee/EmployeeAttendanceCalendar";
 import AdminAttendanceDashboard from "./pages/Dashboard/admin/AdminAttendanceDashboard";
+import ProfileDetails from "./pages/Dashboard/admin/ProfileDetails";
 
 const App = () => {
   const { showLogin } = useAppContext();
@@ -62,6 +63,7 @@ const App = () => {
         <Route path="admin-verify-attendance" element={<AdminVerifyAttendance />} />
         <Route path="admin-attendance-history" element={<AdminAttendanceDashboard />} />
         <Route path="all" element={<AllEmployees />} />
+         <Route path="profileDetails/:email" element={<ProfileDetails />} />
         <Route path="employee-requests" element={<EmployeeRequests />} />
         <Route path="leave-requests" element={<LeaveRequests />} />
       </Route>
