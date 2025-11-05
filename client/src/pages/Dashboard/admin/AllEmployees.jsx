@@ -158,12 +158,12 @@ const AllEmployees = () => {
                           src={u.image}
                           alt={u.fullName}
                           className="w-10 h-10 rounded-full object-cover border border-primary/20 cursor-pointer"
-                          onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                          onClick={() => navigate(`/dashboard/profileDetails/${u._id}`)}
                         />
                       </td>
                       <td
                         className="px-4 py-3 font-medium cursor-pointer hover:underline"
-                        onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                        onClick={() => navigate(`/dashboard/profileDetails/${u._id}`)}
                       >
                         {u.fullName}
                       </td>
@@ -195,7 +195,7 @@ const AllEmployees = () => {
                           Remove
                         </button>
                         <button
-                          onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                          onClick={() => navigate(`/dashboard/profileDetails/${u._id}`)}
                           className="px-3 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-600"
                         >
                           View
@@ -219,12 +219,12 @@ const AllEmployees = () => {
                       src={u.image}
                       alt={u.fullName}
                       className="w-12 h-12 rounded-full object-cover border border-primary/30 cursor-pointer"
-                      onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                      onClick={() => navigate(`/dashboard/profileDetails/${u._id}`)}
                     />
                     <div>
                       <p
                         className="font-semibold text-gray-800 cursor-pointer hover:underline"
-                        onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                        onClick={() => navigate(`/dashboard/profileDetails/${u._id}`)}
                       >
                         {u.fullName}
                       </p>
@@ -263,7 +263,7 @@ const AllEmployees = () => {
                       Remove
                     </button>
                     <button
-                      onClick={() => navigate(`/dashboard/profileDetails/${u.email}`)}
+                      onClick={() => navigate(`/dashboard/profileDetails/${u._id}`)}
                       className="flex-1 px-3 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600"
                     >
                       View

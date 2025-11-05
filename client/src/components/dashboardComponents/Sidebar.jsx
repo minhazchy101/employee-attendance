@@ -120,7 +120,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                   <FaUsers />Attendance History
                 </NavLink>
 
-                <NavLink to="/dashboard/all" className={linkClass}>
+                <NavLink to="/dashboard/all-employees" className={linkClass}>
                   <FaUsers /> All Employees
                 </NavLink>
 

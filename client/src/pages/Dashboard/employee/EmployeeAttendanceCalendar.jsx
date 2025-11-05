@@ -122,7 +122,7 @@ const EmployeeAttendanceCalendar = () => {
     setFilterMonth(date.getMonth());
     setFilterYear(date.getFullYear());
   };
-
+console.log(records)
   const selectedRecord = selectedDate
     ? recordMap[selectedDate.toISOString().split("T")[0]]
     : null;

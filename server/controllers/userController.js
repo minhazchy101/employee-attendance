@@ -61,6 +61,22 @@ export const registerUser = async (req, res) => {
   }
 };
 
+export const getPendingUsers = async (req, res) => {
+  try {
+    const pending = await User.find({
+      role: "pending request",
+      isProfileComplete: true,
+    })
+      .sort({ createdAt: -1 })
+      .select("-__v");
+
+    res.status(200).json({ success: true, count: pending.length, users: pending });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 /* ============================================
    🟣 GET USER BY EMAIL (Protected)
 ============================================ */
@@ -76,7 +92,23 @@ export const getUserByEmail = async (req, res) => {
 };
 
 /* ============================================
-   🟡 GET ALL USERS (Admin Only)
+   🟢 GET USER BY ID (Admin Only)
+============================================ */
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params; // get user ID from URL
+    const user = await User.findById(id).select("-__v"); // exclude __v
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+/* ============================================
+   🟡 GET ALL USERS (Admin Only) 
 ============================================ */
 export const getAllUsers = async (req, res) => {
   try {

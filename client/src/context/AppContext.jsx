@@ -19,6 +19,11 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
    const [pendingUsers, setPendingUsers] = useState([]);
 
+   const [pendingAttendance, setPendingAttendance] = useState([]);
+const [pendingLeave, setPendingLeave] = useState([]);
+const [pendingEmployees, setPendingEmployees] = useState([]);
+
+
   // 🔹 Initialize and manage Firebase Auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -118,7 +123,11 @@ useEffect(() => {
     axios,
     pendingUsers, 
     setPendingUsers,
-    location
+    location,
+    pendingAttendance, setPendingAttendance,
+    pendingLeave, setPendingLeave,
+    pendingEmployees, setPendingEmployees
+
 
   };
 

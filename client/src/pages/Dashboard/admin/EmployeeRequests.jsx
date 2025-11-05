@@ -26,14 +26,12 @@ console.log(setPendingUsers)
   const fetchRequests = async () => {
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/users/all`,
+        `${import.meta.env.VITE_API_URL}/api/users/pending`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const pending = data?.filter(
-        (u) => u.role === "pending request" && u.isProfileComplete
-      );
-      setRequests(pending);
-      console.log(pending)
+      
+      setRequests(data.users);
+      console.log(data)
      
     } catch (error) {
       console.error("Failed to fetch requests:", error);
@@ -199,7 +197,7 @@ console.log('requests : ', requests)
                   </tr>
                 </thead>
                 <tbody>
-                  {requests.map((user, i) => (
+                  {requests?.map((user, i) => (
                     <tr
                       key={user._id}
                       className="border-b hover:bg-gray-50 transition"

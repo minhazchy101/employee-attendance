@@ -6,6 +6,7 @@ import { usePolish } from "../../../hooks/usePolish";
 import PageHeader from "../../../components/reusable/PageHeader";
 import StatsCard from "../../../components/reusable/StatsCard";
 import AdminHolidays from "./AdminHolidays";
+import { useNavigate } from "react-router-dom";
 
 // Icons
 import {
@@ -17,94 +18,120 @@ import {
   FaEnvelopeOpenText,
 } from "react-icons/fa";
 
-
 const AdminDashboard = () => {
-  const { token, setPendingUsers } = useAppContext();
+  const {
+    token,
+    pendingEmployees,
+    pendingLeave,
+    pendingAttendance,
+    setPendingEmployees,
+    setPendingLeave,
+    setPendingAttendance,
+  } = useAppContext();
+
   const [stats, setStats] = useState({
     employees: 0,
     admins: 0,
-    pendingUsers: 0,
     presentToday: 0,
-    pendingLeaves: 0,
     holidays: 0,
   });
+
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
+  const navigate = useNavigate();
   const API = import.meta.env.VITE_API_URL;
 
-  /** 🔹 Fetch all user stats */
-  const fetchUserStats = async () => {
-    const { data } = await axios.get(`${API}/api/users/all`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const employees = data.filter((u) => u.role === "employee").length;
-    const admins = data.filter((u) => u.role === "admin").length;
-    const pendingUsers = data.filter((u) => u.role === "pending request" && u.isProfileComplete);
-   
-    setPendingUsers(pendingUsers)
-    return { employees, admins, pendingUsers };
-  };
-
-  /** 🔹 Fetch today's attendance stats */
-  const fetchAttendanceStats = async () => {
-    const { data } = await axios.get(`${API}/api/attendance/all`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const today = new Date().toISOString().slice(0, 10);
-    const todaysRecords = data.filter((r) => r.date === today);
-    const presentToday = todaysRecords.filter((r) => r.status === "attended").length;
-
-    return { presentToday };
-  };
-
-  /** 🔹 Fetch leave + holiday stats */
-  const fetchLeaveHolidayStats = async () => {
-    const [leaveRes, holidayRes] = await Promise.all([
-      axios.get(`${API}/api/leave/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      axios.get(`${API}/api/holidays`, {  // Adjusted endpoint
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-    ]);
-
-    const pendingLeaves = leaveRes.data.leaves.filter((l) => l.status === "pending").length;
-    const holidays = holidayRes.data.holidays?.length || 0;
-
-    return { pendingLeaves, holidays };
-  };
-
-  /** 🔹 Combine all dashboard data */
-  const fetchDashboardData = async () => {
+  /** 🔹 Fetch base user, attendance, and holiday stats (non-pending) */
+  const fetchBaseDashboard = async () => {
     try {
       setLoading(true);
-      const [user, attendance, leaveHoliday] = await Promise.all([
-        fetchUserStats(),
-        fetchAttendanceStats(),
-        fetchLeaveHolidayStats(),
+      const [usersRes, attendanceRes, holidayRes] = await Promise.all([
+        axios.get(`${API}/api/users/all`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/api/attendance/all`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/api/holidays`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
-      setStats({ ...user, ...attendance, ...leaveHoliday });
-    } catch (err) {
-      console.error("Dashboard fetch failed:", err);
+
+      const users = usersRes.data;
+      const employees = users.filter((u) => u.role === "employee").length;
+      const admins = users.filter((u) => u.role === "admin").length;
+
+      const today = new Date().toISOString().slice(0, 10);
+      const todaysRecords = attendanceRes.data.filter(
+        (r) => r.date === today && r.status === "attended"
+      );
+
+      const holidays = holidayRes.data.holidays?.length || 0;
+
+      setStats({
+        employees,
+        admins,
+        presentToday: todaysRecords.length,
+        holidays,
+      });
+    } catch (error) {
+      console.error("Dashboard base fetch failed:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  /** 🧠 Initial + realtime updates */
+  /** 🔹 Fetch and update pending data (shared states) */
+  const fetchPendingData = async () => {
+    try {
+      const [pendingEmp, pendingLeaves, pendingAttend] = await Promise.all([
+        axios.get(`${API}/api/users/pending`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/api/leave/all`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API}/api/attendance/all`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      // Pending employees (only complete profiles waiting)
+      setPendingEmployees(pendingEmp.data.users || []);
+
+      // Pending leaves
+      const pendingLeavesFiltered = pendingLeaves.data.leaves.filter(
+        (l) => l.status === "pending"
+      );
+      setPendingLeave(pendingLeavesFiltered);
+
+      // Pending attendance (if applicable)
+      const pendingAttendanceFiltered = pendingAttend.data.filter(
+        (a) => a.status === "pending"
+      );
+      setPendingAttendance(pendingAttendanceFiltered);
+    } catch (error) {
+      console.error("Pending fetch error:", error);
+    }
+  };
+
+  /** 🧠 Initial load */
   useEffect(() => {
-    fetchDashboardData();
+    if (token) {
+      fetchBaseDashboard();
+      fetchPendingData();
+    }
   }, [token]);
 
- usePolish({
-  "user-change": () => fetchDashboardData(),
-  "attendance-change": () => fetchDashboardData(),
-  "leave-status-change": () => fetchDashboardData(),
-   "holiday-change": () => fetchDashboardData(),
-});
+  /** 🔄 Real-time auto sync */
+  usePolish({
+    "user-change": () => fetchPendingData(),
+    // "leave-request": fetchDashboardData, 
+    "leave-request": () => fetchPendingData(),
+    "attendance-change": () => fetchPendingData(),
+    "holiday-change": () => fetchBaseDashboard(),
+  });
 
   if (loading) return <LoadingSpinner />;
 
@@ -156,10 +183,11 @@ const AdminDashboard = () => {
               color="green"
             />
             <StatsCard
-              label="Pending User Requests"
-              value={stats.pendingUsers.length}
+              label="Pending Employee Requests"
+              value={pendingEmployees.length}
               icon={FaEnvelopeOpenText}
               color="yellow"
+              onClick={() => navigate("/dashboard/employee-requests")}
             />
             <StatsCard
               label="Employees Present Today"
@@ -169,15 +197,24 @@ const AdminDashboard = () => {
             />
             <StatsCard
               label="Pending Leave Requests"
-              value={stats.pendingLeaves}
+              value={pendingLeave.length}
               icon={FaClipboardList}
               color="red"
+              onClick={() => navigate("/dashboard/leave-requests")}
+            />
+            <StatsCard
+              label="Pending Attendance"
+              value={pendingAttendance.length}
+              icon={FaUserClock}
+              color="orange"
+              onClick={() => navigate("/dashboard/attendance-approvals")}
             />
             <StatsCard
               label="Global Holidays"
               value={stats.holidays}
               icon={FaCalendarCheck}
               color="green"
+              onClick={() => setActiveTab("holidays")}
             />
           </div>
         )}

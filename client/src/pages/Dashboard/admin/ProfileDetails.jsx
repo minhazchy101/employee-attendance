@@ -6,7 +6,7 @@ import LoadingSpinner from "../../../components/reusable/LoadingSpinner";
 import PageHeader from "../../../components/reusable/PageHeader";
 
 const ProfileDetails = () => {
-  const { email } = useParams();
+  const { id } = useParams();
   const { token } = useAppContext();
   const navigate = useNavigate();
 
@@ -17,7 +17,7 @@ const ProfileDetails = () => {
     try {
       setLoading(true);
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/users/profile/${email}`,
+        `${import.meta.env.VITE_API_URL}/api/users/profileDetails/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setUser(data.user);
@@ -29,8 +29,8 @@ const ProfileDetails = () => {
   };
 
   useEffect(() => {
-    if (email && token) fetchUser();
-  }, [email, token]);
+    if (id && token) fetchUser();
+  }, [id, token]);
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "-";

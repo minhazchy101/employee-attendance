@@ -145,6 +145,7 @@ const Profile = () => {
               alt="Profile"
               className="w-32 h-32 rounded-full object-cover border-4 border-primary/30 shadow-md"
             />
+            <p>L</p>
           </div>
           <div className="flex-1 text-center sm:text-left">
             <h2 className="text-3xl font-semibold text-gray-800 flex items-center justify-center sm:justify-start gap-2">
