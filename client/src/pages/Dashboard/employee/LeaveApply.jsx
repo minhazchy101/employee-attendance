@@ -196,9 +196,13 @@ const LeaveApply = () => {
                 <div className="space-y-1">
                   <p className="font-medium capitalize text-[var(--color-primary-dull)]">{leave.reasonType}</p>
                   <p className="text-sm text-gray-600">{leave.description || "—"}</p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(leave.startDate).toLocaleDateString()} → {new Date(leave.endDate).toLocaleDateString()}
-                  </p>
+                 <p className="text-xs text-gray-400">
+  {new Date(leave.startDate).toLocaleDateString()} → {new Date(leave.endDate).toLocaleDateString()} 
+  <span className="ml-2 text-gray-500">
+    ({leave.totalDays} {leave.totalDays === 1 ? "day" : "days"})
+  </span>
+</p>
+
                 </div>
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-semibold ${

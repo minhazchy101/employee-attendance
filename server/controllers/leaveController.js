@@ -20,16 +20,27 @@ export const submitLeave = async (req, res) => {
       return res.status(400).json({ message: "All fields are required." });
     }
 
+    // 🧮 Calculate total leave days
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+    if (totalDays <= 0) {
+      return res.status(400).json({ message: "Invalid date range." });
+    }
+
     // Prevent overlapping leave requests
     const overlap = await Leave.findOne({
       userEmail,
-      $or: [
-        { startDate: { $lte: endDate }, endDate: { $gte: startDate } }
-      ],
+      $or: [{ startDate: { $lte: endDate }, endDate: { $gte: startDate } }],
       status: { $in: ["pending", "approved"] },
     });
-    if (overlap) return res.status(400).json({ message: "Leave overlaps with existing request." });
+    if (overlap)
+      return res
+        .status(400)
+        .json({ message: "Leave overlaps with existing request." });
 
+    // Create new leave record
     const leave = new Leave({
       fullName: user.fullName,
       userEmail: user.email,
@@ -37,6 +48,7 @@ export const submitLeave = async (req, res) => {
       description: description || "",
       startDate,
       endDate,
+      totalDays, 
       status: "pending",
     });
 
@@ -45,12 +57,16 @@ export const submitLeave = async (req, res) => {
     const io = req.app.get("io");
     io.emit("leave-request", leave);
 
-    res.status(201).json({ message: "Leave request submitted successfully.", leave });
+    res.status(201).json({
+      message: "Leave request submitted successfully.",
+      leave,
+    });
   } catch (err) {
     console.error("submitLeave error:", err);
     res.status(500).json({ message: err.message });
   }
 };
+
 
 /**
  * 👨‍💼 Admin: Get all leaves
@@ -63,6 +79,7 @@ export const getAllLeaves = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 /**
  * 👨‍💼 Admin: Approve or Reject Leave
@@ -79,40 +96,57 @@ export const updateLeaveStatus = async (req, res) => {
     const leave = await Leave.findById(leaveId);
     if (!leave) return res.status(404).json({ message: "Leave not found." });
 
+    // Skip if status is already the same
+    if (leave.status === status) {
+      return res.status(400).json({ message: `Leave is already ${status}` });
+    }
+
     leave.status = status;
     await leave.save();
 
-    // --- Side effects for approved leaves ---
-    if (status === "approved") {
-      const start = new Date(leave.startDate);
-      const end = new Date(leave.endDate);
-      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    const io = req.app.get("io");
 
+    if (status === "approved") {
+      const { startDate, endDate, totalDays, reasonType, userEmail } = leave;
+
+      // Update attendance for each day
+      const start = new Date(startDate);
+      const end = new Date(endDate);
       const promises = [];
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().slice(0, 10);
         promises.push(
           Attendance.findOneAndUpdate(
-            { userEmail: leave.userEmail, date: dateStr },
-            { status: "authorized leave", method: "leave-system" },
+            { userEmail, date: dateStr },
+            {
+              status: "authorized leave",
+              method: "leave-system",
+              reason: reasonType,
+            },
             { upsert: true, new: true }
           )
         );
       }
       await Promise.all(promises);
 
-      // Deduct holiday balance if reasonType = "holiday"
-      if (leave.reasonType === "holiday") {
-        await User.findOneAndUpdate(
-          { email: leave.userEmail, remainingHoliday: { $gte: days } },
-          { $inc: { remainingHoliday: -days } }
-        );
+      // Deduct remainingHoliday only if leave type is "holiday"
+      if (reasonType === "holiday") {
+        const user = await User.findOne({ email: userEmail });
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+        if (user.remainingHoliday < totalDays) {
+          // Optional: reject leave if insufficient holidays
+          return res
+            .status(400)
+            .json({ message: "Insufficient remaining holidays." });
+        }
+
+        user.remainingHoliday -= totalDays;
+        await user.save();
       }
     }
 
-    const io = req.app.get("io");
     io.emit("leave-status-change", leave);
-
 
     res.json({ message: `Leave ${status} successfully.`, leave });
   } catch (err) {
@@ -120,6 +154,7 @@ export const updateLeaveStatus = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 /**
  * 🧍‍♂️ Employee: Get My Leaves

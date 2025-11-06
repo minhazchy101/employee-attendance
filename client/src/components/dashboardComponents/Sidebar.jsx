@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAppContext } from "../../context/AppContext";
 import {
   FaUser,
@@ -36,10 +36,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   }, [loading, isPending, hasCompleteProfile, location.pathname, navigate]);
 
   const linkClass = ({ isActive }) =>
-    `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
+    `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-light ${
       isActive
         ? "bg-primary text-white shadow-md"
-        : "text-gray-700 hover:bg-primary/10 hover:text-primary"
+        : "text-gray-700 hover:bg-primary/40 hover:text-light"
     }`;
 
   if (loading) {
@@ -54,25 +54,30 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     <>
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          className="fixed inset-0 bg-black/40 z-30 md:hidden "
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed md:static z-40 h-full bg-white border-r w-64 flex flex-col justify-between shadow-lg transform transition-transform duration-300
+        className={`fixed md:static z-40 h-full bg-black  border-r w-64 flex flex-col justify-between shadow-lg transform transition-transform duration-300
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
         <div>
           {/* Logo */}
           <div className="p-6 border-b">
-            <h2 className="text-2xl font-bold text-primary">WorkTrack</h2>
-            <p className="text-sm text-gray-500 mt-1 capitalize">{profile?.role || "user"}</p>
+            
+                   <Link to="/" className="flex items-center gap-2">
+                   <h1 className="text-2xl text-primary/80">
+                        Attendance<span className="text-light font-semibold">Pro</span>
+                   </h1>
+                
+                   </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="p-4 flex flex-col gap-2">
+          <nav className="p-4 flex flex-col gap-2 ">
             {/* 🟡 Pending User */}
             {isPending && (
               <>
@@ -135,11 +140,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
                 <NavLink to="/dashboard/leave-requests" className={linkClass}>
   <FaClipboardList /> Leave Requests
-  {/* {pendingRequests.length > 0 && (
-    <span className="ml-auto bg-secondary text-white rounded-full px-2 py-0.5 text-xs font-semibold">
-      {pendingRequests.length}
-    </span>
-  )} */}
+ 
 </NavLink>
 
                 <NavLink to="/dashboard/profile" className={linkClass}>
@@ -151,10 +152,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         </div>
 
         {/* Logout */}
-        <div className="p-4 border-t">
+        <div className="p-4 border-t border-light">
           <button
             onClick={logout}
-            className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-red-600 hover:bg-red-50 transition"
+            className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-red-600 hover:bg-red-600/60 hover:text-light transition-all duration-300 cursor-pointer "
           >
             <FaSignOutAlt /> Logout
           </button>

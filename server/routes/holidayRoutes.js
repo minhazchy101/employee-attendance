@@ -1,6 +1,7 @@
 import express from "express";
-import Holiday from "../models/Holiday.js";
 import { verifyAdmin } from "../middleware/auth.js";
+import Holiday from "../models/Holiday.js";
+import { applyHolidayToUsers } from "../utils/holidayUtils.js";
 
 const holidayRouter = express.Router();
 
@@ -25,7 +26,7 @@ holidayRouter.post("/add", verifyAdmin, async (req, res) => {
     const { name, date, description } = req.body;
     if (!name || !date)
       return res.status(400).json({ message: "Name and date are required" });
-
+await applyHolidayToUsers(date);
     // Prevent duplicates
     const existing = await Holiday.findOne({ date });
     if (existing)

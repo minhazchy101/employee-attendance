@@ -1,39 +1,41 @@
 import Attendance from "../models/Attendance.js";
 import User from "../models/User.js";
-import Holiday from "../models/Holiday.js"; 
+import Holiday from "../models/Holiday.js";
 import Leave from "../models/Leave.js";
 
 /**
- * 🧍‍♂️ Employee: Mark Attendance (manual request)
+ * 🧍‍♂️ Employee: Mark Attendance (Manual)
  */
 export const markAttendance = async (req, res) => {
   try {
     const userEmail = req.user.email;
-    const today = new Date().toISOString().split("T")[0];
+    const date = new Date().toISOString().split("T")[0];
 
-    // ✅ Block admin users completely (no attendance record)
     const user = await User.findOne({ email: userEmail });
     if (!user || user.role !== "employee") {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const existing = await Attendance.findOne({ userEmail, date: today });
-    if (existing) return res.status(400).json({ message: "Already marked today." });
+    // Prevent duplicate marking
+    const existing = await Attendance.findOne({ userEmail, date });
+    if (existing) {
+      return res.status(400).json({ message: "Already marked today." });
+    }
 
-    // Create pending attendance (awaiting admin verification)
     const attendance = await Attendance.create({
       userEmail,
-      date: today,
+      fullName: user.fullName,
+      date,
       status: "pending",
       method: "manual",
     });
 
-    // Realtime notification to admin dashboards
     const io = req.app.get("io");
     io.emit("attendance-change", { userEmail, status: "pending" });
 
     res.status(201).json({ message: "Attendance marked (pending verification)." });
   } catch (err) {
+    console.error("markAttendance error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -43,7 +45,7 @@ export const markAttendance = async (req, res) => {
  */
 export const verifyAttendance = async (req, res) => {
   try {
-    const { attendanceId, status } = req.body; // attended / unauthorized leave
+    const { attendanceId, status } = req.body;
 
     if (!["attended", "unauthorized leave"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value." });
@@ -58,8 +60,9 @@ export const verifyAttendance = async (req, res) => {
     const io = req.app.get("io");
     io.emit("attendance-change", { userEmail: record.userEmail, status });
 
-    res.json({ message: "Attendance updated successfully." });
+    res.json({ message: "Attendance updated successfully.", record });
   } catch (err) {
+    console.error("verifyAttendance error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -74,8 +77,12 @@ export const getMyAttendance = async (req, res) => {
     const limit = parseInt(req.query.limit) || 30;
 
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .slice(0, 10);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .slice(0, 10);
 
     const records = await Attendance.find({
       userEmail,
@@ -90,51 +97,41 @@ export const getMyAttendance = async (req, res) => {
       date: { $gte: monthStart, $lte: monthEnd },
     });
 
-    const presentDays = monthlyRecords.filter(r => r.status === "attended").length;
-    const authorizedLeave = monthlyRecords.filter(r => r.status === "authorized leave").length;
-    const offDays = monthlyRecords.filter(r => r.status === "off day").length;
-    const unauthorized = monthlyRecords.filter(r => r.status === "unauthorized leave").length;
-    const pending = monthlyRecords.filter(r => r.status === "pending").length;
-
-    const totalWorkDays = presentDays + authorizedLeave + unauthorized;
-    const attendanceRatio = totalWorkDays > 0
-      ? Math.round((presentDays / totalWorkDays) * 100)
-      : 0;
+    const summary = buildMonthlySummary(monthlyRecords);
 
     res.json({
       records,
-      monthlySummary: {
-        presentDays,
-        authorizedLeave,
-        offDays,
-        unauthorized,
-        pending,
-        attendanceRatio,
-      },
+      monthlySummary: summary,
       page,
       limit,
       total: monthlyRecords.length,
     });
   } catch (err) {
+    console.error("getMyAttendance error:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
+
 /**
- * 📅 Employee: Get Today’s Attendance Status
+ * 📅 Employee: Get Today’s Attendance Status + Remaining Holiday
  */
 export const getTodayStatus = async (req, res) => {
   try {
     const userEmail = req.user?.email;
-    const date = new Date().toISOString().slice(0, 10);
+    const today = new Date();
+    const date = today.toISOString().slice(0, 10);
 
     const user = await User.findOne({ email: userEmail });
     if (!user) return res.status(404).json({ message: "User not found" });
     if (user.role !== "employee") return res.status(403).json({ message: "Access denied" });
 
-    // 🔹 Check if today is off-day, global holiday, or approved leave
-    const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
-    const globalHoliday = await Holiday.findOne({ date });
+    const todayName = today.toLocaleDateString("en-US", { weekday: "long" });
+
+    // Check for global holiday
+    const globalHolidayToday = await Holiday.findOne({ date });
+
+    // Check for approved leave today
     const approvedLeave = await Leave.findOne({
       userEmail,
       startDate: { $lte: date },
@@ -142,70 +139,98 @@ export const getTodayStatus = async (req, res) => {
       status: "approved",
     });
 
+    // Check if attendance record exists
     let record = await Attendance.findOne({ userEmail, date });
 
-    // --- Auto-create record if missing ---
+    // Auto-create attendance if missing
     if (!record) {
-      if(todayName === user.offDay) {
-  record = await Attendance.create({
-    userEmail,
-    date,
-    status: "off day",
-    method: "auto",
-    reason: "Weekly off"
-  });
-} else if (globalHoliday) {
-  record = await Attendance.create({
-    userEmail,
-    date,
-    status: "authorized leave",
-    method: "auto",
-    reason: globalHoliday.name || "Holiday"
-  });
-} else if (approvedLeave) {
-  record = await Attendance.create({
-    userEmail,
-    date,
-    status: "authorized leave",
-    method: "leave-system",
-    reason: approvedLeave.reasonType || "approved leave"
-  });
-}
+      if (todayName === user.offDay) {
+        record = await Attendance.create({
+          userEmail,
+          fullName: user.fullName,
+          date,
+          status: "off day",
+          method: "auto",
+          reason: "Weekly off",
+        });
+      } else if (globalHolidayToday) {
+        record = await Attendance.create({
+          userEmail,
+          fullName: user.fullName,
+          date,
+          status: "authorized leave",
+          method: "auto",
+          reason: globalHolidayToday.name || "Public holiday",
+        });
+      } else if (approvedLeave) {
+        record = await Attendance.create({
+          userEmail,
+          fullName: user.fullName,
+          date,
+          status: "authorized leave",
+          method: "leave-system",
+          reason: approvedLeave.reasonType || "approved leave",
+        });
+      }
     }
 
     // Monthly summary
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
     const monthlyRecords = await Attendance.find({
       userEmail,
-      date: { $gte: startOfMonth, $lte: endOfMonth },
+      date: { $gte: monthStart, $lte: monthEnd },
+    });
+    const summary = buildMonthlySummary(monthlyRecords);
+
+    // 🔹 Holiday year: April 6 → next April 5
+    let currentYear = today.getFullYear();
+    let holidayYearStart = new Date(currentYear, 3, 6); // April 6
+    let holidayYearEnd = new Date(currentYear + 1, 3, 5); // April 5 next year
+    if (today < holidayYearStart) {
+      holidayYearStart.setFullYear(currentYear - 1);
+      holidayYearEnd.setFullYear(currentYear);
+    }
+
+    // Fetch global holidays for this holiday year
+    const globalHolidays = await Holiday.find({
+      date: {
+        $gte: holidayYearStart.toISOString().slice(0, 10),
+        $lte: holidayYearEnd.toISOString().slice(0, 10),
+      },
+    });
+    const globalHolidayNames = globalHolidays.map(h => h.name || "Public holiday");
+
+    // Count personal holidays (leave with reason "holiday") taken in this holiday year
+    const personalHolidaysTaken = await Attendance.countDocuments({
+      userEmail,
+      date: { $gte: holidayYearStart.toISOString().slice(0, 10), $lte: holidayYearEnd.toISOString().slice(0, 10) },
+      status: "authorized leave",
+      method: "leave-system",
+      reason: "holiday",
     });
 
-    const presentDays = monthlyRecords.filter(r => r.status === "attended").length;
-    const authorizedLeave = monthlyRecords.filter(r => r.status === "authorized leave").length;
-    const offDays = monthlyRecords.filter(r => r.status === "off day").length;
-    const unauthorized = monthlyRecords.filter(r => r.status === "unauthorized leave").length;
-    const pending = monthlyRecords.filter(r => r.status === "pending").length;
-
-    const totalWorkDays = presentDays + authorizedLeave + unauthorized;
-    const attendanceRatio = totalWorkDays > 0
-      ? Math.round((presentDays / totalWorkDays) * 100)
-      : 0;
+    // Count global holidays taken (auto-created attendance)
+    const globalHolidaysTaken = await Attendance.countDocuments({
+      userEmail,
+      date: { $gte: holidayYearStart.toISOString().slice(0, 10), $lte: holidayYearEnd.toISOString().slice(0, 10) },
+      status: "authorized leave",
+      method: "auto",
+      reason: { $in: globalHolidayNames },
+    });
+console.log("user.remainingHoliday : ", user.remainingHoliday)
+    // 🔹 Remaining holiday calculation (integrates cron reset)
+    const remainingHoliday = Math.max(
+      (user.remainingHoliday ) - personalHolidaysTaken - globalHolidaysTaken,
+      0
+    );
 
     res.json({
       date,
       status: record ? record.status : "not marked",
       record,
-      monthlySummary: {
-        presentDays,
-        authorizedLeave,
-        offDays,
-        unauthorized,
-        pending,
-        attendanceRatio,
-      },
+      remainingHoliday,
+      monthlySummary: summary,
     });
   } catch (err) {
     console.error("getTodayStatus error:", err);
@@ -214,7 +239,26 @@ export const getTodayStatus = async (req, res) => {
 };
 
 /**
- *  Admin: Get all attendance records
+ * 🧮 Helper: Monthly Summary Builder
+ */
+const buildMonthlySummary = (records) => {
+  const presentDays = records.filter((r) => r.status === "attended").length;
+  const authorizedLeave = records.filter((r) => r.status === "authorized leave").length;
+  const offDays = records.filter((r) => r.status === "off day").length;
+  const unauthorized = records.filter((r) => r.status === "unauthorized leave").length;
+  const pending = records.filter((r) => r.status === "pending").length;
+
+  const totalWorkDays = presentDays + authorizedLeave + unauthorized;
+  const attendanceRatio =
+    totalWorkDays > 0 ? Math.round((presentDays / totalWorkDays) * 100) : 0;
+
+  return { presentDays, authorizedLeave, offDays, unauthorized, pending, attendanceRatio };
+};
+
+
+
+/**
+ * 👨‍💼 Admin: Get All Attendance Records
  */
 export const getAllAttendance = async (req, res) => {
   try {
@@ -226,35 +270,51 @@ export const getAllAttendance = async (req, res) => {
 };
 
 /**
- *  Admin: Get today's attendance or full history with pagination + filters
- * Query: ?date=YYYY-MM-DD or ?month=YYYY-MM
+ * 👨‍💼 Admin: Get Attendance Records (Advanced Pagination / Filtering)
  */
 export const getAttendanceRecords = async (req, res) => {
   try {
-    const { date, startDate, endDate, page = 1, limit = 20 } = req.query;
+    let { page = 1, limit = 20, startDate, endDate, status, userEmail } = req.query;
+
+    page = parseInt(page);
+    limit = parseInt(limit);
+
     const query = {};
 
-    // 🔹 Filter by date or range
-    if (date) query.date = date;
-    else if (startDate && endDate) query.date = { $gte: startDate, $lte: endDate };
+    if (startDate && endDate) {
+      query.date = { $gte: startDate, $lte: endDate };
+    } else if (startDate) {
+      query.date = { $gte: startDate };
+    } else if (endDate) {
+      query.date = { $lte: endDate };
+    }
 
-    const skip = (page - 1) * limit;
-
-    const records = await Attendance.find(query)
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+    if (status) query.status = status;
+    if (userEmail) query.userEmail = userEmail;
 
     const total = await Attendance.countDocuments(query);
 
-    res.json({ records, total, page: Number(page), limit: Number(limit) });
+    const records = await Attendance.find(query)
+      .sort({ date: -1, createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.json({
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      records,
+    });
   } catch (err) {
+    console.error("getAttendanceRecords error:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
+
 /**
- *  Both Roles: Search attendance by date (single or range)
+ * 🔍 Admin: Filter / Search Attendance by Date or Range
  */
 export const searchAttendance = async (req, res) => {
   try {
@@ -263,30 +323,36 @@ export const searchAttendance = async (req, res) => {
     const user = await User.findOne({ email: userEmail });
 
     let query = {};
-
-    if (user.role === "employee") query.userEmail = userEmail; // restrict employee
+    if (user.role === "employee") query.userEmail = userEmail;
     if (date) query.date = date;
     else if (startDate && endDate) query.date = { $gte: startDate, $lte: endDate };
 
     const records = await Attendance.find(query).sort({ date: -1 });
     res.json(records);
   } catch (err) {
+    console.error("searchAttendance error:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
 /**
- * Admin: Manually edit attendance status
+ * 👨‍💼 Admin: Manually Edit Attendance
  */
 export const editAttendance = async (req, res) => {
   try {
-    const { attendanceId, status } = req.body;
+    const { attendanceId, status, reason } = req.body;
 
     if (!attendanceId || !status) {
       return res.status(400).json({ message: "attendanceId and status required" });
     }
 
-    const validStatuses = ["attended", "unauthorized leave", "authorized leave", "off day", "pending"];
+    const validStatuses = [
+      "attended",
+      "unauthorized leave",
+      "authorized leave",
+      "off day",
+      "pending",
+    ];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
     }
@@ -295,15 +361,17 @@ export const editAttendance = async (req, res) => {
     if (!record) return res.status(404).json({ message: "Attendance not found" });
 
     record.status = status;
+    if (reason) record.reason = reason;
     await record.save();
 
-    // Emit real-time update
     const io = req.app.get("io");
     io.emit("attendance-change", { userEmail: record.userEmail, status });
 
     res.json({ message: "Attendance status updated", record });
   } catch (err) {
+    console.error("editAttendance error:", err);
     res.status(500).json({ message: err.message });
   }
 };
+
 

@@ -29,6 +29,11 @@ const UserSchema = new mongoose.Schema(
       enum: ["waiting for approval", "active"],
       default: "waiting for approval",
     },
+    remainingHoliday: {
+  type: Number,
+  default: 28,
+},
+
 
     jobTitle: { type: String, required: true },
     joinDate: { type: Date, default: Date.now },
