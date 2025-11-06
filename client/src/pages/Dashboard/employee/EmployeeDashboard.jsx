@@ -19,16 +19,19 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 const EmployeeDashboard = () => {
   const { token } = useAppContext();
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState(false);
-
   const API = import.meta.env.VITE_API_URL;
 
-  /** Fetch Today’s Attendance */
-  const fetchTodayStatus = async () => {
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [marking, setMarking] = useState(false);
+
+  /** Fetch Today’s Attendance (support both full + realtime update) */
+  const fetchTodayStatus = async (isRealtime = false) => {
     try {
-      setLoading(true);
+      if (isRealtime) setUpdating(true);
+      else setLoading(true);
+
       const res = await axios.get(`${API}/api/attendance/today`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -40,7 +43,8 @@ const EmployeeDashboard = () => {
         text: err?.response?.data?.message || "Unable to load attendance data.",
       });
     } finally {
-      setLoading(false);
+      if (isRealtime) setUpdating(false);
+      else setLoading(false);
     }
   };
 
@@ -56,7 +60,7 @@ const EmployeeDashboard = () => {
         title: "Marked Successfully",
         text: res.data.message,
       });
-      fetchTodayStatus();
+      fetchTodayStatus(true);
     } catch (err) {
       Swal.fire({
         icon: "error",
@@ -70,10 +74,11 @@ const EmployeeDashboard = () => {
 
   /** Real-time socket updates */
   usePolish({
-    "attendance-change": fetchTodayStatus,
-    "leave-status-change": fetchTodayStatus, // fixed to match backend event name
+    "attendance-change": () => fetchTodayStatus(true),
+    "leave-status-change": () => fetchTodayStatus(true),
   });
 
+  /** Load data on mount */
   useEffect(() => {
     if (token) fetchTodayStatus();
   }, [token]);
@@ -86,8 +91,8 @@ const EmployeeDashboard = () => {
       </div>
     );
 
+  // Extract data
   const { date, status, record, monthlySummary, remainingHoliday } = summary || {};
-  console.log('summary : ', summary)
   const {
     presentDays = 0,
     authorizedLeave = 0,
@@ -112,6 +117,7 @@ const EmployeeDashboard = () => {
 
   const pieOptions = {
     plugins: { legend: { position: "bottom" } },
+    animation: { duration: 800 },
   };
 
   const statusColor =
@@ -125,17 +131,25 @@ const EmployeeDashboard = () => {
     }[status?.toLowerCase()] || "text-gray-600 bg-gray-100";
 
   return (
-    <div className="p-6 space-y-10">
+    <div className="p-6 space-y-10 transition-all duration-300">
       <PageHeader
         title="Employee Dashboard"
         subtitle="Track your attendance and leave balance"
       />
 
-      {/* Today's Attendance */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition">
+      {updating && (
+        <div className="flex justify-center items-center">
+          <p className="text-sm text-gray-400 animate-pulse">
+             Updating...
+          </p>
+        </div>
+      )}
+
+      {/* Today’s Attendance */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition relative">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
               Today: <span className="text-indigo-600">{date}</span>
             </h2>
             <p className="mt-1 text-sm text-gray-600">
@@ -156,11 +170,11 @@ const EmployeeDashboard = () => {
 
           {status === "off day" ? (
             <p className="text-yellow-600 font-medium">
-              Weekly off — enjoy your day!
+              🌞 Weekly off — enjoy your day!
             </p>
           ) : status === "authorized leave" ? (
             <p className="text-blue-600 font-medium">
-              Approved leave — no attendance required.
+              🏖 Approved leave — no attendance required.
             </p>
           ) : record ? (
             <p className="text-gray-500 text-sm">
@@ -227,8 +241,9 @@ const EmployeeDashboard = () => {
   );
 };
 
+/** Reusable Summary Card */
 const SummaryCard = ({ icon, label, value, color }) => (
-  <div className="flex flex-col items-center justify-center rounded-xl p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition">
+  <div className="flex flex-col items-center justify-center rounded-xl p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
     <div
       className={`${color} w-14 h-14 flex items-center justify-center rounded-full text-xl mb-3`}
     >
