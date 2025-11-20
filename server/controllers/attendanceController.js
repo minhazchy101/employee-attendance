@@ -218,7 +218,7 @@ export const getTodayStatus = async (req, res) => {
       method: "auto",
       reason: { $in: globalHolidayNames },
     });
-console.log("user.remainingHoliday : ", user.remainingHoliday)
+
     // 🔹 Remaining holiday calculation (integrates cron reset)
     const remainingHoliday = Math.max(
       (user.remainingHoliday ) - personalHolidaysTaken - globalHolidaysTaken,
@@ -314,18 +314,34 @@ export const getAttendanceRecords = async (req, res) => {
 
 
 /**
- * 🔍 Admin: Filter / Search Attendance by Date or Range
+ * 🔍 Admin: Filter / Search Attendance by Date or Range and user email or name
  */
 export const searchAttendance = async (req, res) => {
   try {
-    const { startDate, endDate, date } = req.query;
+    const { startDate, endDate, date, email, name } = req.query;
     const userEmail = req.user.email;
     const user = await User.findOne({ email: userEmail });
 
     let query = {};
-    if (user.role === "employee") query.userEmail = userEmail;
-    if (date) query.date = date;
-    else if (startDate && endDate) query.date = { $gte: startDate, $lte: endDate };
+
+    if (user.role === "employee") {
+      // Employees can only see their own records
+      query.userEmail = userEmail;
+    } else {
+      // Admins can filter by email or name (partial case-insensitive)
+      if (email) {
+        query.userEmail = { $regex: email, $options: "i" };
+      }
+      if (name) {
+        query.fullName = { $regex: name, $options: "i" };
+      }
+    }
+
+    if (startDate && endDate) {
+      query.date = { $gte: startDate, $lte: endDate };
+    } else if (date) {
+      query.date = date;
+    }
 
     const records = await Attendance.find(query).sort({ date: -1 });
     res.json(records);

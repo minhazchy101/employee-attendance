@@ -1,6 +1,5 @@
 import cron from "node-cron";
 import Attendance from "../models/Attendance.js";
-
 import Leave from "../models/Leave.js";
 import User from "../models/User.js";
 
@@ -37,3 +36,44 @@ export const scheduleDailyAttendanceCheck = (io) => {
     console.log(`[Cron] Attendance check completed for ${today}`);
   });
 };
+
+/* export const scheduleDailyAttendanceCheck = (io) => {
+  cron.schedule("0 0 * * *", async () => {  // runs at server midnight
+    const localNow = new Date();
+    const today = localNow.toLocaleDateString("en-CA"); // <-- Correct local date
+    const dayOfWeek = localNow.getDay(); // <-- Correct local weekday
+
+    const employees = await User.find({ role: "employee", status: "approved" });
+
+    for (const emp of employees) {
+      const existing = await Attendance.findOne({ userEmail: emp.email, date: today });
+      if (existing) continue;
+
+      let status = "unauthorized leave";
+
+      // 1️⃣ Weekly Off
+      if (emp.weeklyOffDay === dayOfWeek) status = "off day";
+
+      // 2️⃣ Approved Leave
+      const approvedLeave = await Leave.findOne({
+        employeeEmail: emp.email,
+        status: "approved",
+        startDate: { $lte: today },
+        endDate: { $gte: today },
+      });
+      if (approvedLeave) status = "authorized leave";
+
+      await Attendance.create({
+        userEmail: emp.email,
+        date: today,
+        status,
+        method: "auto"
+      });
+
+      io.emit("attendance-change", { userEmail: emp.email, status });
+    }
+
+    console.log(`[Cron] Attendance check completed for ${today}`);
+  });
+};
+*/ 

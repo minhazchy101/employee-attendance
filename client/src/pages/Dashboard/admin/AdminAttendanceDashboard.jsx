@@ -43,15 +43,33 @@ const AdminAttendanceDashboard = () => {
     }
   };
 
-  // Search attendance records (full collection)
+  // Search attendance records (full collection with extended filters)
   const handleSearch = async () => {
     setLoading(true);
     try {
       const params = {};
-      if (searchQuery) params.userEmail = searchQuery;
+
+      // If searchQuery exists, decide if email or name param
+      if (searchQuery.trim()) {
+        if (searchQuery.includes("@")) {
+          // Probably an email, search by email (partial match)
+          params.email = searchQuery.trim();
+        } else {
+          // Otherwise, search by fullName (partial match)
+          params.name = searchQuery.trim();
+        }
+      }
+
+      // Handle date filters
       if (searchDates.startDate && searchDates.endDate) {
         params.startDate = searchDates.startDate;
         params.endDate = searchDates.endDate;
+      } else if (searchDates.startDate && !searchDates.endDate) {
+        // Single date search (using startDate as date)
+        params.date = searchDates.startDate;
+      } else if (!searchDates.startDate && searchDates.endDate) {
+        // If only endDate provided, treat it as single date search too
+        params.date = searchDates.endDate;
       }
 
       const { data } = await axios.get(
@@ -131,7 +149,7 @@ const AdminAttendanceDashboard = () => {
         <p>Loading attendance...</p>
       </div>
     );
-console.log(attendance)
+
   return (
     <div className="p-6">
       <PageHeader
@@ -143,7 +161,7 @@ console.log(attendance)
       <div className="mb-4 flex flex-col md:flex-row gap-2">
         <input
           type="text"
-          placeholder="Search by email"
+          placeholder="Search by email or name"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}

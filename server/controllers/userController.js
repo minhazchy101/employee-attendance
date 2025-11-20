@@ -6,9 +6,9 @@ import User from "../models/User.js";
 ============================================ */
 export const registerUser = async (req, res) => {
   try {
-    const { fullName, email, jobTitle, phoneNumber, niNumber } = req.body;
+    const { fullName, email, image, jobTitle, phoneNumber, niNumber } = req.body;
 
-    if (!fullName || !email || !jobTitle || !phoneNumber || !niNumber) {
+    if (!fullName || !email ) {
       return res.status(400).json({ message: "All fields are required." });
     }
 
@@ -17,7 +17,8 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: "User with this email already exists." });
     }
 
-    let imageUrl = "";
+    console.log('image : ', image)
+    let imageUrl = image;
     if (req.file) {
       const uploadResponse = await imagekit.upload({
         file: req.file.buffer,
@@ -34,15 +35,23 @@ export const registerUser = async (req, res) => {
       fullName,
       email,
       image: imageUrl,
-      jobTitle,
-      phoneNumber,
-      niNumber,
+      // These fields are completed later
+      jobTitle: "",
+      phoneNumber: "",
+      niNumber: "",
+
+      sponsorshipLicenseNumber: "",
+      sponsorDocuments: [],
+
       role: assignedRole,
       status: assignedStatus,
       joinDate: new Date(),
-    });
 
+       isProfileComplete: assignedRole === "admin",
+    });
     await newUser.save();
+    // newUser.isProfileComplete = newUser.role === "admin" && (Boolean);
+    // console.log("newUser.isProfileComplete : ", newUser.isProfileComplete)
 
     // Emit websocket event
     req.app.get("io").emit("user-change", { type: "added", user: newUser });
@@ -176,11 +185,12 @@ export const deleteUser = async (req, res) => {
 };
 
 /* ============================================
-   🟢 UPDATE PROFILE (Employee Only)
-============================================ */
+   🟢 UPDATE USER PROFILE (Employee Only)
+============================================= */
 export const updateUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
+
     const {
       fullName,
       jobTitle,
@@ -195,23 +205,65 @@ export const updateUserProfile = async (req, res) => {
       annualWages,
       offDay,
       emergencyContacts,
+      sponsorshipLicenseNumber,
     } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    
-    // Handle optional profile image
-    if (req.file) {
-      const uploadResponse = await imagekit.upload({
-        file: req.file.buffer,
-        fileName: req.file.originalname,
+    /* -------------------------------------------------------
+       1️⃣ HANDLE IMAGE UPLOAD (if provided)
+    ------------------------------------------------------- */
+    console.log('user.image : ', user.image)
+    if (req.files?.image?.[0]) {
+      const img = req.files.image[0];
+      const uploaded = await imagekit.upload({
+        file: img.buffer,
+        fileName: img.originalname,
       });
-      user.image = uploadResponse.url;
+      user.image = uploaded.url;
     }
 
-    // Parse emergency contacts safely
+    /* -------------------------------------------------------
+       2️⃣ HANDLE SPONSOR DOCUMENTS UPLOAD (multiple PDFs)
+    ------------------------------------------------------- */
+    // if (req.files?.sponsorDocuments) {
+    //   for (const doc of req.files.sponsorDocuments) {
+    //     const uploadedDoc = await imagekit.upload({
+    //       file: doc.buffer,
+    //       fileName: doc.originalname,
+    //     });
+    //     user.sponsorDocuments.push(uploadedDoc.url);
+    //   }
+    // }
+
+    if (req.body.existingDocuments) {
+  let keepDocs = [];
+  try {
+    keepDocs = JSON.parse(req.body.existingDocuments); 
+  } catch {}
+  
+  // Only keep the ones that the user wants
+  user.sponsorDocuments = user.sponsorDocuments.filter(url => keepDocs.includes(url));
+}
+
+// Then handle new uploads as before
+if (req.files?.sponsorDocuments) {
+  for (const doc of req.files.sponsorDocuments) {
+    const uploadedDoc = await imagekit.upload({
+      file: doc.buffer,
+      fileName: doc.originalname,
+    });
+    user.sponsorDocuments.push(uploadedDoc.url);
+  }
+}
+
+
+    /* -------------------------------------------------------
+       3️⃣ PARSE EMERGENCY CONTACTS SAFELY
+    ------------------------------------------------------- */
     let parsedContacts = user.emergencyContacts || [];
+
     if (emergencyContacts) {
       try {
         parsedContacts = JSON.parse(emergencyContacts);
@@ -222,8 +274,11 @@ export const updateUserProfile = async (req, res) => {
       }
     }
 
+    /* -------------------------------------------------------
+       4️⃣ ASSIGN UPDATED FIELDS
+    ------------------------------------------------------- */
     Object.assign(user, {
-      fullName,
+      fullName: fullName || user.fullName,
       jobTitle,
       phoneNumber,
       niNumber,
@@ -236,27 +291,34 @@ export const updateUserProfile = async (req, res) => {
       annualWages,
       offDay,
       emergencyContacts: parsedContacts,
+      sponsorshipLicenseNumber,
     });
 
-    // Check if profile is complete
+    /* -------------------------------------------------------
+       5️⃣ CHECK PROFILE COMPLETION
+    ------------------------------------------------------- */
     const requiredFields = [
-      fullName,
-      jobTitle,
-      phoneNumber,
-      niNumber,
-      address,
-      passportNumber,
-      passportExpireDate,
-      jobStartDate,
-      weeklyHours,
-      hourlyRate,
-      annualWages,
-      parsedContacts.length,
+      user.fullName,
+      user.jobTitle,
+      user.phoneNumber,
+      user.niNumber,
+      user.address,
+      user.passportNumber,
+      user.passportExpireDate,
+      user.jobStartDate,
+      user.weeklyHours,
+      user.hourlyRate,
+      user.annualWages,
+      parsedContacts.length,             // must have at least 1 contact
     ];
+
     user.isProfileComplete = requiredFields.every(Boolean);
 
     await user.save();
 
+    /* -------------------------------------------------------
+       6️⃣ EMIT WEBSOCKET & RESPOND
+    ------------------------------------------------------- */
     req.app.get("io").emit("user-change", { type: "updated", user });
 
     res.status(200).json({
@@ -264,6 +326,7 @@ export const updateUserProfile = async (req, res) => {
       message: "Profile updated successfully.",
       user,
     });
+
   } catch (error) {
     console.error("Update profile error:", error);
     res.status(500).json({ success: false, message: error.message });

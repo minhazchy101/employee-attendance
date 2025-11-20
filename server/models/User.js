@@ -16,26 +16,24 @@ const UserSchema = new mongoose.Schema(
     fullName: { type: String, required: true },
     image: { type: String, default: "" },
     email: { type: String, required: true, unique: true, lowercase: true },
-    phoneNumber: { type: String, required: true },
-    niNumber: { type: String, required: true },
+    phoneNumber: { type: String},
+    niNumber: { type: String},
 
     role: {
       type: String,
       enum: ["pending request", "employee", "admin"],
       default: "pending request",
     },
+
     status: {
       type: String,
       enum: ["waiting for approval", "active"],
       default: "waiting for approval",
     },
-    remainingHoliday: {
-  type: Number,
-  default: 28,
-},
 
+    remainingHoliday: { type: Number, default: 28 },
 
-    jobTitle: { type: String, required: true },
+    jobTitle: { type: String },
     joinDate: { type: Date, default: Date.now },
 
     // Extended fields
@@ -49,9 +47,14 @@ const UserSchema = new mongoose.Schema(
     offDay: { type: String, default: "Not Assigned" },
     emergencyContacts: [EmergencyContactSchema],
 
+   
+    sponsorshipLicenseNumber: { type: String, default: "" },
+    sponsorDocuments: { type: [String], default: [] },
+
     isProfileComplete: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
+
 
 export default mongoose.model("User", UserSchema);

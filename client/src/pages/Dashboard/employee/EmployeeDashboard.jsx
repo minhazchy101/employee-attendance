@@ -129,7 +129,7 @@ const EmployeeDashboard = () => {
       pending: "text-gray-600 bg-gray-100",
       "not marked": "text-gray-500 bg-gray-50",
     }[status?.toLowerCase()] || "text-gray-600 bg-gray-100";
-
+console.log(summary.date)
   return (
     <div className="p-6 space-y-10 transition-all duration-300">
       <PageHeader

@@ -7,7 +7,6 @@ import PageHeader from "../../components/reusable/PageHeader";
 import LoadingSpinner from "../../components/reusable/LoadingSpinner";
 import { useLocation } from "react-router-dom";
 
-
 // Reusable input field
 const InputField = ({ label, name, value, onChange, type = "text" }) => (
   <div>
@@ -33,34 +32,37 @@ const defaultContact = {
   email: "",
 };
 
+const defaultDocument = { file: null, name: "" };
+
 const defaultForm = {
+  phoneNumber: "",
+  niNumber: "",
+  jobTitle: "",
+  sponsorshipLicenseNumber: "",
+  sponsorDocuments: [defaultDocument],
   address: "",
   passportNumber: "",
   passportExpireDate: "",
   jobStartDate: "",
   weeklyHours: 40,
-  hourlyRate: 0,
-  annualWages: 0,
+  hourlyRate: 1,
+  annualWages: 1,
   emergencyContacts: [defaultContact],
 };
 
 const CompleteProfile = () => {
   const { token, profile, fetchUserProfile, navigate } = useAppContext();
-
-  
   const [form, setForm] = useState(defaultForm);
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-const location = useLocation();
-   
-  
-    useEffect(() => {
-      if (!loading && profile.isProfileComplete && location.pathname === "/dashboard/complete-profile") {
-        navigate("/dashboard");
-      }
-    }, [loading, profile, navigate, location.pathname]);
-  
-console.log('profile : ', profile)
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!loading && profile?.isProfileComplete && location.pathname === "/dashboard/complete-profile") {
+      navigate("/dashboard");
+    }
+  }, [loading, profile, navigate, location.pathname]);
+
   const fetchProfile = async () => {
     if (!profile?._id) {
       setIsFetching(false);
@@ -69,17 +71,14 @@ console.log('profile : ', profile)
     }
 
     try {
-      
       setForm({
         ...defaultForm,
         ...profile,
-        emergencyContacts:
-          profile?.emergencyContacts?.length > 0
-            ? profile?.emergencyContacts
-            : [defaultContact],
+        emergencyContacts: profile?.emergencyContacts?.length > 0 ? profile.emergencyContacts : [defaultContact],
+        sponsorDocuments: profile?.sponsorDocuments?.length > 0
+          ? profile.sponsorDocuments.map((fileName) => ({ file: null, name: fileName }))
+          : [defaultDocument],
       });
-
-      
     } catch (err) {
       console.error("Profile fetch failed:", err);
       Swal.fire({
@@ -103,11 +102,13 @@ console.log('profile : ', profile)
     },
   });
 
+  // Handle general input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Emergency contacts handlers
   const handleContactChange = (index, e) => {
     const { name, value } = e.target;
     const updatedContacts = [...form.emergencyContacts];
@@ -140,29 +141,73 @@ console.log('profile : ', profile)
     });
   };
 
+  // Document handlers
+  const handleDocumentChange = (index, e) => {
+    const file = e.target.files[0];
+    const updatedDocs = [...form.sponsorDocuments];
+    updatedDocs[index] = { file, name: file?.name || "" };
+    setForm((prev) => ({ ...prev, sponsorDocuments: updatedDocs }));
+  };
+
+  const addDocument = () => {
+    setForm((prev) => ({
+      ...prev,
+      sponsorDocuments: [...prev.sponsorDocuments, defaultDocument],
+    }));
+  };
+
+  const removeDocument = (index) => {
+    Swal.fire({
+      title: "Remove this document?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonText: "Cancel",
+      confirmButtonText: "Yes, remove",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setForm((prev) => ({
+          ...prev,
+          sponsorDocuments: prev.sponsorDocuments.filter((_, i) => i !== index),
+        }));
+      }
+    });
+  };
+
+  // Form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // ✅ Inside handleSubmit
-await axios.put(
-  `${import.meta.env.VITE_API_URL}/api/users/update-profile/${profile._id}`,
-  form,
-  { headers: { Authorization: `Bearer ${token}` } }
-);
+      const formData = new FormData();
+      for (let key in form) {
+        if (key === "emergencyContacts") {
+          formData.append(key, JSON.stringify(form[key]));
+        } else if (key === "sponsorDocuments") {
+          form[key].forEach((doc) => {
+            if (doc.file) formData.append("sponsorDocuments", doc.file);
+          });
+        } else {
+          formData.append(key, form[key]);
+        }
+      }
 
-Swal.fire({
-  icon: "success",
-  title: "Profile Updated Successfully!",
-  timer: 1200,
-  showConfirmButton: false,
-});
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/users/update-profile/${profile._id}`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } }
+      );
 
-// ✅ Re-fetch profile and redirect to profile page
-await fetchUserProfile(profile.email);
-navigate("/dashboard/profile");
+      Swal.fire({
+        icon: "success",
+        title: "Profile Updated Successfully!",
+        timer: 1200,
+        showConfirmButton: false,
+      });
 
+      await fetchUserProfile(profile.email);
+      navigate("/dashboard/profile");
     } catch (err) {
       console.error("Update failed:", err);
       Swal.fire({
@@ -183,8 +228,6 @@ navigate("/dashboard/profile");
     );
   }
 
-  console.log('form : ', form)
-
   return (
     <div className="p-6 md:p-10 space-y-6">
       <PageHeader
@@ -197,6 +240,9 @@ navigate("/dashboard/profile");
         <div className="bg-white shadow-md rounded-lg p-6 space-y-6 border border-primary/20">
           <h2 className="text-xl font-semibold text-primary">Personal Information</h2>
           <div className="grid md:grid-cols-2 gap-6">
+            <InputField label="Phone Number" name="phoneNumber" value={form.phoneNumber} onChange={handleChange} type="tel" />
+            <InputField label="NI Number" name="niNumber" value={form.niNumber} onChange={handleChange} />
+            <InputField label="Job Title" name="jobTitle" value={form.jobTitle} onChange={handleChange} />
             <InputField label="Address" name="address" value={form.address} onChange={handleChange} />
             <InputField label="Passport Number" name="passportNumber" value={form.passportNumber} onChange={handleChange} />
             <InputField label="Passport Expire Date" name="passportExpireDate" value={form.passportExpireDate} onChange={handleChange} type="date" />
@@ -204,6 +250,49 @@ navigate("/dashboard/profile");
             <InputField label="Weekly Hours" name="weeklyHours" value={form.weeklyHours} onChange={handleChange} type="number" />
             <InputField label="Hourly Rate (£)" name="hourlyRate" value={form.hourlyRate} onChange={handleChange} type="number" />
             <InputField label="Annual Wages (£)" name="annualWages" value={form.annualWages} onChange={handleChange} type="number" />
+
+            <div>
+              <label className="block mb-1 font-medium text-gray-600">Sponsorship License Number (Optional)</label>
+              <input
+                name="sponsorshipLicenseNumber"
+                value={form.sponsorshipLicenseNumber}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
+              />
+            </div>
+
+            {/* Documents Section */}
+            <div className="bg-gray-50 p-4 rounded-md">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block font-medium text-gray-600">Documents (Optional)</label>
+                <button
+                  type="button"
+                  onClick={addDocument}
+                  className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition text-sm"
+                >
+                  + Add Document
+                </button>
+              </div>
+
+              {form.sponsorDocuments.map((doc, index) => (
+                <div key={index} className="flex items-center space-x-3 mb-2">
+                  <input
+                    type="file"
+                    onChange={(e) => handleDocumentChange(index, e)}
+                    className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition w-full"
+                  />
+                  {form.sponsorDocuments.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeDocument(index)}
+                      className="text-red-500 font-medium hover:underline"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

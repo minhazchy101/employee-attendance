@@ -1,5 +1,5 @@
 import express from "express";
-import upload from "../middleware/multer.js";
+import upload, { uploadFields } from "../middleware/multer.js";
 import {
   registerUser,
   getAllUsers,
@@ -17,7 +17,8 @@ const UsersRoute = express.Router();
 /* ===============================
    🟢 PUBLIC ROUTE
 ================================= */
-UsersRoute.post("/register", upload.single("image"), registerUser);
+UsersRoute.post("/register", upload.single('image')
+, registerUser);
 
 /* ===============================
    🔒 PROTECTED ROUTES
@@ -26,7 +27,8 @@ UsersRoute.get("/all", verifyAdmin, getAllUsers);
 UsersRoute.get("/profile/:email", verifyToken, getUserByEmail);
 UsersRoute.put(
   "/update-profile/:userId",
-  upload.single("image"),
+  uploadFields
+,
   verifyToken,
   updateUserProfile
 );

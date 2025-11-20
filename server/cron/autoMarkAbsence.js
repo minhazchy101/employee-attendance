@@ -1,4 +1,3 @@
-// autoMarkAbsence.js
 import cron from "node-cron";
 import Attendance from "../models/Attendance.js";
 import User from "../models/User.js";

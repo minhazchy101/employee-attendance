@@ -1,8 +1,14 @@
 import multer from "multer";
 
-// ✅ Store files in memory (buffer available in req.file.buffer)
 const storage = multer.memoryStorage();
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+});
+
+export const uploadFields = upload.fields([
+  { name: "image", maxCount: 1 },
+  { name: "sponsorDocuments", maxCount: 10 },
+]);
 
 export default upload;
